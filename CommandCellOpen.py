@@ -1,5 +1,5 @@
 import Cell
-from struct import pack, unpack
+from struct import pack, unpack, pack_into, unpack_from
 
 '''
 CommandCellOpen represents an Open, Opened, or Open Failed
@@ -13,7 +13,8 @@ class CommandCellOpen(Cell):
 
   def __init__(self, circuitId, cmdType):
     padding = '0'.zfill(LENGTH - OPEN_HEAD_LEN)
-    self.buffer = pack(COMMAND_FORMAT, circuitId, cmdType, openerId, openedId, padding)
+    super().__init__(self, circuitId, cmdType)
+    self.buffer = pack_into('!IIs', self.buffer, OPENER_ID_INDEX, openerId, openedId, padding)
 
   def getOpenerId():
     openerId, rest = unpack_from('!Is', self.buffer, OPENER_ID_INDEX)

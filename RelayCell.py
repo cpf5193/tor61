@@ -1,6 +1,6 @@
 import Cell
 import sys
-from struct import pack, unpack
+from struct import pack, unpack, pack_into, unpack_from
 
 '''
 RelayCell represents a Tor61 Relay cell of any type
@@ -11,7 +11,7 @@ class RelayCell(Cell):
   RELAY_HEAD_LEN = 14
   FILLER = 0x0000
   DIGEST = 0x00000000
-  RELAY_CMD = 0x03
+  CMD_TYPE = 0x03
   STREAM_ID_INDEX = 3
   BODY_LEN_INDEX = 11
   RELAY_CMD_INDEX = 13
@@ -19,7 +19,8 @@ class RelayCell(Cell):
   def __init__(self, circuitId, streamId, bodyLen, relayCmd, body):
     padding = '0'.zfill(LENGTH - RELAY_HEAD_LEN - bodyLen)
     endString = (body == None ? '' : body) + padding
-    self.buffer = pack(self.headString, RELAY_CMD, streamId, FILLER, DIGEST, bodyLen, relayCmd, endString)
+    super().__init__(self, circuitId, CMD_TYPE)
+    self.buffer = pack_into('!HHIHbs', self.buffer, STREAM_ID_INDEX, streamId, FILLER, DIGEST, bodyLen, relayCmd, endString)
 
   def getStreamId():
     streamId, rest = unpack_from('!Hs', self.buffer, STREAM_ID_INDEX)

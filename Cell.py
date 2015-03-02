@@ -1,4 +1,4 @@
-from struct import pack, unpack
+from struct import pack, unpack, unpack_from
 
 '''
 A base class representing the basic format of a Cell.

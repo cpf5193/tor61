@@ -22,3 +22,6 @@ class CommandCellOpen(Cell):
   def getOpenedId():
     openedId, rest = unpack_from('!Is', self.buffer, OPENED_ID_INDEX)
     return openedId
+
+  def getBuffer():
+    return self.buffer

@@ -57,3 +57,5 @@ class RelayCell(Cell):
     else:
       return name
 
+  def getBuffer():
+    return self.buffer

@@ -25,3 +25,7 @@ class CommandCellOpen(Cell):
 
   def getBuffer():
     return self.buffer
+
+  def toString():
+    circuitId, cmdType, openerId, openedId, rest = unpack(COMMAND_FORMAT, self.buffer)
+    return "CommandCellOpen: [circuitId: %x, cmdType: %x, openerId: %x, openedId: %x, rest: %s]" % (circuitId, cmdType, openerId, openedId, rest)

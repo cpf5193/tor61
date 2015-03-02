@@ -27,3 +27,7 @@ class Cell(object):
 
   def getBuffer():
     return self.buffer
+
+  def toString():
+    circuitId, cmdType, rest = unpack(CELL_FORMAT, self.buffer)
+    return "Cell: [circuitId: %x, cmdType: %x, rest: %s]" % (circuitId, cmdType, rest)

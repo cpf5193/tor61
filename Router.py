@@ -26,14 +26,18 @@ class Router(object):
   def createCircuit(self):
     print "Creating circuit (incomplete)"
     print "fetching registered routers"
-    string = "python fetch.py Tor61Router-1826"
+    string = "python fetch.py Tor61Router-%s" % self.groupNum
     print string
 
     process = subprocess.Popen([string], stdout = subprocess.PIPE, shell=True)
     (output, err) = process.communicate()
-    print "output: ", output
+    
+    peers = output.splitlines()
+    for i in range(0, len(lines)):
+      peers[i] = peers[i].split('\t')
+
+    print "peers: ", peers
     #connect to three other routers and create a circuit
-    return
 
   def manageTimeouts(self):
     #create a new thread to manage the timer table,

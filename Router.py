@@ -71,43 +71,57 @@ class Router(object):
     print "handling Open message (incomplete)"
 
   def handleOpened():
+    return
     # The received cell is an Opened cell, do appropriate logic
 
   def handleOpenFailed():
+    return
     # The received cell is an Open Failed cell, do appropriate logic
 
   def handleCreate():
     # The received cell is a Created cell, do appropriate logic
+    return
 
   def handleCreated():
+    return
     # The received cell is a Created cell, do appropriate logic
 
   def handleCreateFailed():
     # The received cell is a Create Failed cell, do appropriate logic
+    return
 
   def handleDestroy():
     # The received cell is a Destroy cell, do appropriate logic
+    return
 
   def handleBegin():
     # The received cell is a relay begin cell, do appropriate logic
+    return
 
   def handleData():
     # The received cell is a relay data cell, do appropriate logic
+    return
 
   def handleEnd():
     # The received cell is a relay end cell, do appropriate logic
+    return
 
   def handleConnected():
     # The received cell is a relay connected cell, do appropriate logic
+    return
 
   def handleExtend():
     # The received cell is a relay extend cell, do appropriate logic
+    return
 
   def handleExtended():
     # The received cell is a relay extended cell, do appropriate logic
+    return
 
   def handleBeginFailed():
     # The received cell is a relay Begin Failed cell, do appropriate logic
+    return
 
   def handleExtendFailed():
     # The received cell is a relay Extend Failed cell, do appropriate logic
+    return

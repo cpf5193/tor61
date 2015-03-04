@@ -11,10 +11,13 @@ class CommandCellOpen(Cell.Cell):
   OPENER_ID_INDEX = 3
   OPENED_ID_INDEX = 7
 
-  def __init__(self, circuitId, cmdType):
+  def __init__(self, circuitId, cmdType, openerId, openedId):
     padding = '0'.zfill(LENGTH - OPEN_HEAD_LEN)
     super().__init__(self, circuitId, cmdType)
     self.buffer = pack_into('!IIs', self.buffer, OPENER_ID_INDEX, openerId, openedId, padding)
+
+  def setBuffer(buffer):
+    self.buffer = buffer
 
   def getOpenerId():
     openerId, rest = unpack_from('!Is', self.buffer, OPENER_ID_INDEX)

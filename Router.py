@@ -1,5 +1,5 @@
 import CommandCellOpen, RelayCell, Cell, RouterConnection
-import os, threading, subprocess, time
+import os, threading, subprocess, time, socket
 from random import randint
 
 class Router(object):
@@ -14,13 +14,14 @@ class Router(object):
     self.groupNum = groupNum
     self.instanceNum = instanceNum
     self.port = port
+    self.agentId = (groupNum << 16) | instanceNum
 
   #############################################
   ## Router startup functions
   #############################################
   def registerRouter(self):
     print "Registering router"
-    string = "python registration_client.py %s Tor61Router-%s-%s %s" % (self.port, self.groupNum, self.instanceNum, 100001)
+    string = "python registration_client.py %s Tor61Router-%s-%s %s" % (self.port, self.groupNum, self.instanceNum, self.agentId)
     print string
     thread = threading.Thread(target=os.system, args=(string,))
     thread.start()
@@ -29,19 +30,48 @@ class Router(object):
     print "Creating circuit (incomplete)"
     #connect to three other routers and create a circuit
     peers = self.getPeers()
-    #if (!((peers[0][0], peers[0][1]) in connections)):
-      # create tcp connection
-    #send open cell
 
+    #TODO move this logic to a RouterConnection object
 
-    #Check whether there is already a tcp connection between this router and
-    #the first random router. If not, try to create a tcp connection and send
-    #an OPEN cell. If an OPENED cell is returned, send a create cell and enter
-    #a None-->circuit,sock entry into the router table. Then send extends twice
-    #to the router
-    
+    # this could go in connectToRouter
+    tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+      tcpSocket.connect(peers[0]['ip'], peers[0]['port'])
+    except:
+      print "Failed to create tcp connection to first random peer."
+      sys.exit(1)
       
+    #This could go in writeToBuffer
+    openMsg = CommandCellOpen.CommandCellOpen(0x0000, 0x05, self.agentId, peers[0]['data'])
+    tcpSocket.sendAll(openMsg.getBuffer())
+    
+    #new thread here?
+    #This could go in readfromRouter
+    reply = tcpSocket.recv(openMsg.LENGTH)
 
+    #This logic would go in the handle functions
+    replyMsg = CommandCellOpen.setBuffer(reply)
+    msgType = replyMsg.getcmdId()
+    if (msgType == 0x06):
+      #Opened cell
+      print "OPENED cell received"
+    elif (msgType == 0x07):
+      print "ERROR: received OPEN FAILED cell"
+      #We may be able to improve this by picking a different peer and trying
+      # to do an open before giving up
+      sys.exit(1)
+    else:
+      print "ERROR: unexpected command type in response to OPEN"
+      sys.exit(1)
+    
+    #Send a CREATE cell, on CREATE enter an entry in the table
+    
+    #Send a RELAY EXTEND cell x2 using the stream id 0x0000 
+    #and the circuit id 0x0001
+      
+    #If we make it to the end with the expected responses, print
+    #"Successfully created circuit with id 0x0001" and end function
+    
   def getPeers(self):
     print "fetching registered routers"
     string = "python fetch.py Tor61Router-%s" % self.groupNum
@@ -56,7 +86,12 @@ class Router(object):
 
     circuitPeers = []
     for i in range(0, 3):
-      circuitPeers.append(peers[randint(0, len(peers)-1)])
+      randPeer = peers[randint(0, len(peers)-1)]
+      peerObj = {}
+      peerObj['ip'] = randPeer[0]
+      peerObj['socket'] = randPeer[1]
+      peerObj['data'] = randPeer[2]
+      circuitPeers.append(peerObj)
     print "circuitPeers: ", circuitPeers
 
   def manageTimeouts(self):

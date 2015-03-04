@@ -1,4 +1,4 @@
-import Cell
+from cell import Cell
 import sys
 from struct import pack, unpack, pack_into, unpack_from
 
@@ -6,7 +6,7 @@ from struct import pack, unpack, pack_into, unpack_from
 RelayCell represents a Tor61 Relay cell of any type
 '''
 
-class RelayCell(Cell):
+class RelayCell(Cell.Cell):
   RELAY_FORMAT = '!HbHHIHbs'
   RELAY_HEAD_LEN = 14
   FILLER = 0x0000
@@ -18,7 +18,10 @@ class RelayCell(Cell):
 
   def __init__(self, circuitId, streamId, bodyLen, relayCmd, body):
     padding = '0'.zfill(LENGTH - RELAY_HEAD_LEN - bodyLen)
-    endString = (body == None ? '' : body) + padding
+    if (body == None):
+      endString = padding
+    else:
+      endString = body + padding
     super().__init__(self, circuitId, CMD_TYPE)
     self.buffer = pack_into('!HHIHbs', self.buffer, STREAM_ID_INDEX, streamId, FILLER, DIGEST, bodyLen, relayCmd, endString)
 

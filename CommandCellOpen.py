@@ -5,7 +5,7 @@ from struct import pack, unpack, pack_into, unpack_from
 CommandCellOpen represents an Open, Opened, or Open Failed
 '''
 
-class CommandCellOpen(Cell):
+class CommandCellOpen(Cell.Cell):
   COMMAND_FORMAT = '!HbIIs'
   OPEN_HEAD_LEN = 11
   OPENER_ID_INDEX = 3

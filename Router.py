@@ -1,24 +1,31 @@
-import CommandCellOpen, RelayCell, Cell, RouterConnection
+import CommandCellOpen, RelayCell, Cell, RouterConnection, os
 
 class Router(object):
   #############################################
   ## Constructor
   #############################################
-  def __init__(self, converter):
+  def __init__(self, converter, groupNum, instanceNum, port):
     self.routingTable = {}
     self.timers = {}
     self.connections = {}
     self.converter = converter
+    self.groupNum = groupNum
+    self.instanceNum = instanceNum
+    self.port = port
 
   #############################################
   ## Router startup functions
   #############################################
   def registerRouter():
-    print "Registering router (incomplete)"
-    #register with the registration service here
+    print "Registering router"
+    string = "python registration_client.py %s Tor61Router-%s-%s" % (self.groupNum, self.instanceNum, self.port)
+    os.system(string)
 
   def createCircuit():
     print "Creating circuit (incomplete)"
+    print "fetching registered routers"
+    string = "python fetch.py Tor61Router-%s" % self.groupNum
+    os.system(string)
     #connect to three other routers and create a circuit
 
   def manageTimeouts():

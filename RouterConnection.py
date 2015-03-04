@@ -14,15 +14,18 @@ class RouterConnection(object):
   #############################################
   def connectToRouter(circuitId, port):
     # do a tcp connect to the specified router
+    return
 
   def disconnectFromRouter(hostname, port):
     # destroy the tcp connection to this router
+    return
 
   #############################################
   ## Read/Write Functions
   #############################################
   def writeToBuffer(msg):
     #insert msg into buffer
+    return
 
   # Read from the remote router
   def readFromRouter():
@@ -37,3 +40,4 @@ class RouterConnection(object):
   # Write to the remote router
   def writeToRouter(msg):
     # send the indicated message to the router
+    return

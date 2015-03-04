@@ -1,4 +1,4 @@
-from cell import Cell
+import Cell
 import sys
 from struct import pack, unpack, pack_into, unpack_from
 

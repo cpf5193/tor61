@@ -16,26 +16,28 @@ class Router(object):
   #############################################
   ## Router startup functions
   #############################################
-  def registerRouter():
+  def registerRouter(self):
     print "Registering router"
-    string = "python registration_client.py %s Tor61Router-%s-%s" % (self.groupNum, self.instanceNum, self.port)
+    string = "python registration_client.py %s Tor61Router-%s-%s %s" % (self.groupNum, self.instanceNum, self.port, 65539)
+    print string
     os.system(string)
 
-  def createCircuit():
+  def createCircuit(self):
     print "Creating circuit (incomplete)"
     print "fetching registered routers"
     string = "python fetch.py Tor61Router-%s" % self.groupNum
+    print string
     os.system(string)
     #connect to three other routers and create a circuit
 
-  def manageTimeouts():
+  def manageTimeouts(self):
     #create a new thread to manage the timer table,
     #checking if circuits have timed out and calling destroy if so
     print "Creating timeout manager (incomplete)"
 
-  def start():
-    registerRouter()
-    createCircuit()
+  def start(self):
+    self.registerRouter()
+    self.createCircuit()
     #accept incoming connections here
     print "Starting the router (incomplete)"
 
@@ -43,12 +45,12 @@ class Router(object):
   #############################################
   ## Reading/Delegating functions
   #############################################
-  def handleProxyMessage():
+  def handleProxyMessage(self):
     # Take a message from the converter and place it into the appropriate
     # buffer using RouterConnection's writeToBuffer
     print "Handling message from proxy side (incomplete)"
 
-  def handleRouterMessage(msg):
+  def handleRouterMessage(self, msg):
     # Accept a message from a RouterConnection, process it, and send it either to
     # the converter or to another router connection's buffer
     print "Handling message from router buffer (incomplete)"
@@ -58,7 +60,7 @@ class Router(object):
   #############################################
   ## Destruction functions
   #############################################
-  def destroyCircuit(circuitId):
+  def destroyCircuit(self, circuitId):
     # Destroy the specified circuit
     print "Destroying circuit #%x (incomplete)" % circuitId
   
@@ -66,62 +68,62 @@ class Router(object):
   #############################################
   ## Handle Message Functions
   #############################################
-  def handleOpen():
+  def handleOpen(self):
     # The received cell is an Open cell, do appropriate logic
     print "handling Open message (incomplete)"
 
-  def handleOpened():
+  def handleOpened(self):
     return
     # The received cell is an Opened cell, do appropriate logic
 
-  def handleOpenFailed():
+  def handleOpenFailed(self):
     return
     # The received cell is an Open Failed cell, do appropriate logic
 
-  def handleCreate():
+  def handleCreate(self):
     # The received cell is a Created cell, do appropriate logic
     return
 
-  def handleCreated():
+  def handleCreated(self):
     return
     # The received cell is a Created cell, do appropriate logic
 
-  def handleCreateFailed():
+  def handleCreateFailed(self):
     # The received cell is a Create Failed cell, do appropriate logic
     return
 
-  def handleDestroy():
+  def handleDestroy(self):
     # The received cell is a Destroy cell, do appropriate logic
     return
 
-  def handleBegin():
+  def handleBegin(self):
     # The received cell is a relay begin cell, do appropriate logic
     return
 
-  def handleData():
+  def handleData(self):
     # The received cell is a relay data cell, do appropriate logic
     return
 
-  def handleEnd():
+  def handleEnd(self):
     # The received cell is a relay end cell, do appropriate logic
     return
 
-  def handleConnected():
+  def handleConnected(self):
     # The received cell is a relay connected cell, do appropriate logic
     return
 
-  def handleExtend():
+  def handleExtend(self):
     # The received cell is a relay extend cell, do appropriate logic
     return
 
-  def handleExtended():
+  def handleExtended(self):
     # The received cell is a relay extended cell, do appropriate logic
     return
 
-  def handleBeginFailed():
+  def handleBeginFailed(self):
     # The received cell is a relay Begin Failed cell, do appropriate logic
     return
 
-  def handleExtendFailed():
+  def handleExtendFailed(self):
     # The received cell is a relay Extend Failed cell, do appropriate logic
     return

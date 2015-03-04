@@ -13,6 +13,7 @@ def main():
   router = Router.Router(None, groupNum, instanceNum, port)
   print "Starting Router"
   router.start()
+  sys.exit(0)
 
 if __name__ == '__main__':
   main()

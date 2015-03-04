@@ -1,4 +1,4 @@
-import CommandCellOpen, RelayCell, Cell, RouterConnection, os
+import CommandCellOpen, RelayCell, Cell, RouterConnection, os, threading, subprocess, time
 
 class Router(object):
   #############################################
@@ -18,17 +18,22 @@ class Router(object):
   #############################################
   def registerRouter(self):
     print "Registering router"
-    string = "python registration_client.py %s Tor61Router-%s-%s %s" % (self.groupNum, self.instanceNum, self.port, 65539)
+    string = "python registration_client.py %s Tor61Router-%s-%s %s" % (self.port, self.groupNum, self.instanceNum, 100001)
     print string
-    os.system(string)
+    thread = threading.Thread(target=os.system, args=(string,))
+    thread.start()
 
   def createCircuit(self):
     print "Creating circuit (incomplete)"
     print "fetching registered routers"
-    string = "python fetch.py Tor61Router-%s" % self.groupNum
+    string = "python fetch.py Tor61Router-1826"
     print string
-    os.system(string)
+
+    process = subprocess.Popen([string], stdout = subprocess.PIPE, shell=True)
+    (output, err) = process.communicate()
+    print "output: ", output
     #connect to three other routers and create a circuit
+    return
 
   def manageTimeouts(self):
     #create a new thread to manage the timer table,
@@ -37,10 +42,11 @@ class Router(object):
 
   def start(self):
     self.registerRouter()
+    time.sleep(3)
     self.createCircuit()
     #accept incoming connections here
     print "Starting the router (incomplete)"
-
+    return
 
   #############################################
   ## Reading/Delegating functions

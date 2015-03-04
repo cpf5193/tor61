@@ -1,4 +1,6 @@
-import CommandCellOpen, RelayCell, Cell, RouterConnection, os, threading, subprocess, time
+import CommandCellOpen, RelayCell, Cell, RouterConnection
+import os, threading, subprocess, time
+from random import randint
 
 class Router(object):
   #############################################
@@ -25,19 +27,37 @@ class Router(object):
 
   def createCircuit(self):
     print "Creating circuit (incomplete)"
+    #connect to three other routers and create a circuit
+    peers = self.getPeers()
+    #if (!((peers[0][0], peers[0][1]) in connections)):
+      # create tcp connection
+    #send open cell
+
+
+    #Check whether there is already a tcp connection between this router and
+    #the first random router. If not, try to create a tcp connection and send
+    #an OPEN cell. If an OPENED cell is returned, send a create cell and enter
+    #a None-->circuit,sock entry into the router table. Then send extends twice
+    #to the router
+    
+      
+
+  def getPeers(self):
     print "fetching registered routers"
     string = "python fetch.py Tor61Router-%s" % self.groupNum
     print string
 
     process = subprocess.Popen([string], stdout = subprocess.PIPE, shell=True)
     (output, err) = process.communicate()
-    
+
     peers = output.splitlines()
-    for i in range(0, len(lines)):
+    for i in range(0, len(peers)):
       peers[i] = peers[i].split('\t')
 
-    print "peers: ", peers
-    #connect to three other routers and create a circuit
+    circuitPeers = []
+    for i in range(0, 3):
+      circuitPeers.append(peers[randint(0, len(peers)-1)])
+    print "circuitPeers: ", circuitPeers
 
   def manageTimeouts(self):
     #create a new thread to manage the timer table,

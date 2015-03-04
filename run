@@ -1,0 +1,3 @@
+#!/bin/bash
+
+python Node.py 1826 0001 22222

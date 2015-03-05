@@ -1,7 +1,7 @@
 # Chip Fukuhara and Jacob Gile
 # Zahorjan
 # CSE 461
-# Project 0
+# Tor61
 
 # ProxyConnectionListener.py
 # Listens for TCP connections on a specific port

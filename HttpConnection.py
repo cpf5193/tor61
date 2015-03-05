@@ -1,7 +1,7 @@
 # Chip Fukuhara and Jacob Gile
 # Zahorjan
 # CSE 461
-# Project 0
+# Tor61
 
 # HttpConnection.py
 # Stores a read thread, write thread, and thread-safe
@@ -11,6 +11,7 @@ import sys, threading, Tor61Log
 from HttpReader import HttpReader
 from HttpWriter import HttpWriter
 from HttpBuffer import HttpBuffer
+from HttpCellConverter import HttpCellConverter
 
 log = Tor61Log.getLog()
 
@@ -18,7 +19,8 @@ class HttpConnection:
 	#Initialize port that listens for new Proxy connections	
 	def __init__(self, sock):
 		self.buffer = HttpBuffer()
-		self.reader = HttpReader(sock)
+		self.converter = HttpCellConverter(self.buffer)
+		self.reader = HttpReader(sock, self.converter)
 		self.writer = HttpWriter(sock, self.buffer)
 		log.info("__init__() completed")
 		

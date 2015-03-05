@@ -1,7 +1,7 @@
 # Chip Fukuhara and Jacob Gile
 # Zahorjan
 # CSE 461
-# Project 0
+# Tor61
 
 # HttpReader.py
 # Read thread for Http Proxy
@@ -21,9 +21,10 @@ class HttpBuffer:
 		
 	#Gets the next piece of data in the buffer
 	def getNext(self):
+		log.info("")
 		return self.data.get()
 		
 	#Places a piece of data in the buffer
 	def put(self, message):
+		log.info(message.strip())
 		self.data.put(message)
-		

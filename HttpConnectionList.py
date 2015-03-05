@@ -1,7 +1,7 @@
 # Chip Fukuhara and Jacob Gile
 # Zahorjan
 # CSE 461
-# Project 0
+# Tor61
 
 # HttpConnectionList.py
 # Stores a list of HTTP Connections 

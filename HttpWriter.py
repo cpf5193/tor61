@@ -1,7 +1,7 @@
 # Chip Fukuhara and Jacob Gile
 # Zahorjan
 # CSE 461
-# Project 0
+# Tor61
 
 # HttpWriter.py
 # Write thread for Http Proxy
@@ -19,7 +19,8 @@ class HttpWriter:
 		
 	#While there is data to be sent, send it
 	def start(self):
-		while(self.buffer.hasNext()):
-			toSend = self.buffer.getNext()
-			self.sock.send(toSend)
-			log.info("Sent: '" + message + "'")
+		while(True):
+			if(self.buffer.hasNext()):
+				toSend = self.buffer.getNext()
+				self.sock.send(toSend)
+				log.info("Sent: '" + toSend.strip() + "'")

@@ -15,6 +15,7 @@ class Router(object):
     self.instanceNum = instanceNum
     self.port = port
     self.agentId = (groupNum << 16) | instanceNum
+    self.circuitStatus = "Not Started"
 
   #############################################
   ## Router startup functions
@@ -31,47 +32,29 @@ class Router(object):
     #connect to three other routers and create a circuit
     peers = self.getPeers()
 
-    #TODO move this logic to a RouterConnection object
+    # Create a new connection between this router and the first peer
+    conn = RouterConnection.RouterConnection(self, 0x0000, peers[0]['ip'], peers[0]['port'])
+    conn.connectToRouter()
 
-    # this could go in connectToRouter
-    tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-      tcpSocket.connect(peers[0]['ip'], peers[0]['port'])
-    except:
-      print "Failed to create tcp connection to first random peer."
-      sys.exit(1)
-      
-    #This could go in writeToBuffer
-    openMsg = CommandCellOpen.CommandCellOpen(0x0000, 0x05, self.agentId, peers[0]['data'])
-    tcpSocket.sendAll(openMsg.getBuffer())
+    #Add this connection to the table
+    connections[peers[0]['ip'] + ':' + peers[0]['port']] = conn
     
-    #new thread here?
-    #This could go in readfromRouter
-    reply = tcpSocket.recv(openMsg.LENGTH)
-
-    #This logic would go in the handle functions
-    replyMsg = CommandCellOpen.setBuffer(reply)
-    msgType = replyMsg.getcmdId()
-    if (msgType == 0x06):
-      #Opened cell
-      print "OPENED cell received"
-    elif (msgType == 0x07):
-      print "ERROR: received OPEN FAILED cell"
-      #We may be able to improve this by picking a different peer and trying
-      # to do an open before giving up
-      sys.exit(1)
-    else:
-      print "ERROR: unexpected command type in response to OPEN"
-      sys.exit(1)
+    #Create an OPEN cell to send to the first peer
+    self.doOpen(conn)
     
-    #Send a CREATE cell, on CREATE enter an entry in the table
+    #Send a CREATE cell
+    self.doCreate(conn)
     
     #Send a RELAY EXTEND cell x2 using the stream id 0x0000 
     #and the circuit id 0x0001
-      
-    #If we make it to the end with the expected responses, print
-    #"Successfully created circuit with id 0x0001" and end function
+    self.doExtend(conn, peers[1])
+    self.doExtend(conn, peers[2])
+
+    print "Successfully created circuit with id 0x0001"
     
+    #TODO: Start listening for other connections once the circuit is created
+    
+  
   def getPeers(self):
     print "fetching registered routers"
     string = "python fetch.py Tor61Router-%s" % self.groupNum
@@ -129,18 +112,76 @@ class Router(object):
     # Destroy the specified circuit
     print "Destroying circuit #%x (incomplete)" % circuitId
   
+  #############################################
+  ## Circuit Creation Send Message functions
+  #############################################
+  def doOpen(self, connection):
+    openMsg = CommandCellOpen.CommandCellOpen(0x0000, 0x05, self.agentId, peers[0]['data'])
+    connection.writeToBuffer(openMsg.getBuffer())
+    reply = connection.readFromRouter()
+    replyMsg = CommandCellOpen.setBuffer(reply)
+    msgType = replyMsg.getCmdId()
+    if (msgType == 0x06):
+      #Opened cell
+      print "OPENED cell received"
+      #Send a create?
+    elif (msgType == 0x07):
+      print "ERROR: received OPEN FAILED cell"
+      #We may be able to improve this by picking a different peer and trying
+      # to do an open before giving up
+      sys.exit(1)
+    else:
+      print "ERROR: unexpected command type in response to OPEN"
+      sys.exit(1)
+    # The received cell is an Opened cell, do appropriate logic
+
+  def doCreate(self, connection):
+    createMsg = Cell.Cell(0x0001, 0x01)
+    connection.writeToBuffer(createMsg.getBuffer())
+    reply = connection.readFromRouter()
+    replyMsg = Cell.setBuffer(reply)
+    msgType = replyMsg.getCmdId()
+    if (msgType == 0x02):
+      print "CREATED cell received"
+      #Add the mapping of (circuitId, (ip:port)) --> (circuitId, (ip:port))
+      #to the routing table
+      key = None
+      value = (connection.circuitId, (connection.ip, connection.port))
+      self.routingTable[key] = value
+    elif (msgType == 0x08):
+      print "CREATE FAILED cell received"
+      sys.exit(1)
+    else:
+      print "ERROR: unexpected command type in response to CREATE"
+      sys.exit(1)
+  
+  def doExtend(self, connection, peerArr):
+    bodyString = "%s:%s\0%s" % (peerArr['ip'], peerArr['port'], peerArr['data'])
+    extendMsg = RelayCell.RelayCell(0x0001, 0x0000, len(bodyString), 0x06, bodyString)
+    connection.writeToBuffer(extendMsg.getBuffer())
+    reply = connection.readFromRouter()
+    replyMsg = RelayCell.setBuffer(reply)
+    msgType = replyMsg.getCmdId()
+    if not (msgType == 0x03):
+      print "ERROR: expected RELAY cell type, received %s" % msgType
+      sys.exit(1)
+    relayType = replyMsg.getRelayCmd()
+    if (relayType == 0x07):
+      print "EXTENDED cell received"
+    elif (relayType == 0x0c):
+      print "EXTEND FAILED cell received"
+      sys.exit(1)
+    else:
+      print "ERROR: unexpected command type in response to EXTEND"
+      sys.exit(1)
+      
 
   #############################################
   ## Handle Message Functions
   #############################################
-  def handleOpen(self):
-    # The received cell is an Open cell, do appropriate logic
-    print "handling Open message (incomplete)"
-
-  def handleOpened(self):
+  def handleOpen(self, msg):
     return
-    # The received cell is an Opened cell, do appropriate logic
-
+  
   def handleOpenFailed(self):
     return
     # The received cell is an Open Failed cell, do appropriate logic

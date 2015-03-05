@@ -31,3 +31,6 @@ class Cell(object):
   def toString():
     circuitId, cmdType, rest = unpack(CELL_FORMAT, self.buffer)
     return "Cell: [circuitId: %x, cmdType: %x, rest: %s]" % (circuitId, cmdType, rest)
+
+  def setBuffer(self, buffer):
+    self.buffer = buffer

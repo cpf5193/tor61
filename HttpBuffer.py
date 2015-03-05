@@ -7,17 +7,13 @@
 # Read thread for Http Proxy
 
 from  Queue import Queue
+import Tor61Log
+log = Tor61Log.getLog()
 
 class HttpBuffer:
 	#Store the data to be consumed
 	def __init__(self):
 		self.data = Queue()
-
-	#Initialize logging based on DEBUG_FLAG
-	def setupLog(self):
-		logging.basicConfig(format='%(levelname)s:%(message)s')
-		self.log = logging.getLogger('tor61')
-		self.log.setLevel(logging.INFO)
 		
 	#Returns True if there is data to process, else False
 	def hasNext(self):

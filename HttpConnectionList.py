@@ -6,27 +6,22 @@
 # HttpConnectionList.py
 # Stores a list of HTTP Connections 
 
-import sys, threading, logging
+import sys, threading, Tor61Log
 from ProxyConnectionListener import ProxyConnectionListener
 from HttpConnection import HttpConnection
+
+log = Tor61Log.getLog()
 
 class HttpConnectionList:
 	#Initialize port that listens for new Proxy connections	
 	def __init__(self, listenerPort):
 		self.connections = {}
-		self.setupLog()
 		self.listener = ProxyConnectionListener(listenerPort, self)
-		self.log.info("__init__() completed")
-
-	#Initialize logging based on DEBUG_FLAG
-	def setupLog(self):
-		logging.basicConfig(format='%(levelname)s:%(message)s')
-		self.log = logging.getLogger('ProxyConnectionListener')
-		self.log.setLevel(logging.INFO)
+		log.info("__init__() completed")
 
 	#Stor the connection in the connection lists
 	def processConnection(self, conn, addr):
-		self.log.info("Processing connection from " + str(addr))
+		log.info("Processing connection from " + str(addr))
 		self.connections[addr] = HttpConnection(conn)
 		self.connections[addr].openConnection()
 		

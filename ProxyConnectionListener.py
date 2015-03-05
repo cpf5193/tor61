@@ -7,26 +7,18 @@
 # Listens for TCP connections on a specific port
 # and delegates them to a connection handler
 
-import logging, socket, threading, sys
+import Tor61Log, socket, threading, sys
 from datetime import *
+log = Tor61Log.getLog()
 
-LOG_LEVEL = logging.INFO
 LISTENER_BACKLOG = 1
 
 class ProxyConnectionListener:
 	#Initialize port that listens for new Proxy connections	
 	def __init__(self, port, connectionHandler):
 		self.connectionHandler = connectionHandler
-		self.setupLog()
 		self.bindPort(port)
-		self.log.info("__init__() completed")
-
-	#Initialize logging based on DEBUG_FLAG
-	def setupLog(self):
-		filename = self.__class__.__name__ + str(datetime.now())
-		logging.basicConfig(format='%(levelname)s: %(message)s')
-		self.log = logging.getLogger('tor61')
-		self.log.setLevel(LOG_LEVEL)
+		log.info("__init__() completed")
 
 	#Bind a port to the listener
 	def bindPort(self, port):
@@ -40,10 +32,9 @@ class ProxyConnectionListener:
 	def start(self):
 		while(True):
 			try:
-				self.log.info("Listening for connections")
+				log.info("Listening for connections")
 				conn, addr = self.listener.accept()
-				self.log.info("Received new connection from " +
-					str(addr))
+				log.info("Received new connection from " + str(addr))
 				self.connectionHandler.processConnection(conn, addr)
 			except socket.error, msg:
 				self.log.error(msg)

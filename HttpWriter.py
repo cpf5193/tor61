@@ -6,8 +6,9 @@
 # HttpWriter.py
 # Write thread for Http Proxy
 
-import sys, threading, logging
+import sys, threading, Tor61Log
 from ProxyConnectionListener import ProxyConnectionListener
+log = Tor61Log.getLog()
 
 class HttpWriter:
 	#Store the socket that will be written to and created a buffer
@@ -15,17 +16,10 @@ class HttpWriter:
 	def __init__(self, sock, inputSource):
 		self.sock = sock
 		self.buffer = inputSource
-		self.setupLog()
-
-	#Initialize logging based on DEBUG_FLAG
-	def setupLog(self):
-		logging.basicConfig(format='%(levelname)s:%(message)s')
-		self.log = logging.getLogger('tor61')
-		self.log.setLevel(logging.INFO)
 		
 	#While there is data to be sent, send it
 	def start(self):
 		while(self.buffer.hasNext()):
 			toSend = self.buffer.getNext()
 			self.sock.send(toSend)
-			sef.log.info("Sent: '" + message + "'")
+			log.info("Sent: '" + message + "'")

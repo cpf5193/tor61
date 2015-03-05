@@ -7,10 +7,12 @@
 # Stores a read thread, write thread, and thread-safe
 # buffer for writing in an HttP Connection
 
-import sys, threading, logging
+import sys, threading, Tor61Log
 from HttpReader import HttpReader
 from HttpWriter import HttpWriter
 from HttpBuffer import HttpBuffer
+
+log = Tor61Log.getLog()
 
 class HttpConnection:
 	#Initialize port that listens for new Proxy connections	
@@ -18,14 +20,7 @@ class HttpConnection:
 		self.buffer = HttpBuffer()
 		self.reader = HttpReader(sock)
 		self.writer = HttpWriter(sock, self.buffer)
-		self.setupLog()
-		self.log.info("__init__() completed")
-
-	#Initialize logging based on DEBUG_FLAG
-	def setupLog(self):
-		logging.basicConfig(format='%(levelname)s:%(message)s')
-		self.log = logging.getLogger('tor61')
-		self.log.setLevel(logging.INFO)
+		log.info("__init__() completed")
 		
 	#Add connections to the connection list as they arrive
 	def openConnection(self):

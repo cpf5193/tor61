@@ -8,6 +8,7 @@
 
 import sys, threading, logging
 from ProxyConnectionListener import ProxyConnectionListener
+from HttpConnection import HttpConnection
 
 class HttpConnectionList:
 	#Initialize port that listens for new Proxy connections	
@@ -26,7 +27,8 @@ class HttpConnectionList:
 	#Stor the connection in the connection lists
 	def processConnection(self, conn, addr):
 		self.log.info("Processing connection from " + str(addr))
-		self.connections[addr] = conn
+		self.connections[addr] = HttpConnection(conn)
+		self.connections[addr].openConnection()
 		
 	#Add connections to the connection list as they arrive
 	def awaitConnections(self):

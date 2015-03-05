@@ -24,8 +24,8 @@ class ProxyConnectionListener:
 	#Initialize logging based on DEBUG_FLAG
 	def setupLog(self):
 		filename = self.__class__.__name__ + str(datetime.now())
-		logging.basicConfig(format='%(levelname)s:%(message)s')
-		self.log = logging.getLogger('ProxyConnectionListener')
+		logging.basicConfig(format='%(levelname)s: %(message)s')
+		self.log = logging.getLogger('tor61')
 		self.log.setLevel(LOG_LEVEL)
 
 	#Bind a port to the listener

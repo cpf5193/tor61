@@ -64,6 +64,9 @@ class RelayCell(Cell.Cell):
   def getBuffer():
     return self.buffer
 
+  def setBuffer(buffer):
+    self.buffer = buffer
+
   def toString():
     circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest = unpack(RELAY_FORMAT, self.buffer)
     return "RelayCell: [circuitId: %x, cmdType: %x, streamId: %x, filler: %x, digest: %x, bodyLen: %x, relayCmd: %x, rest: %s]" % (circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest)

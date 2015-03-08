@@ -14,10 +14,12 @@ log = Tor61Log.getLog()
 LISTENER_BACKLOG = 1
 
 class ProxyConnectionListener:
+	BLOCK_TIMEOUT = 2
 	#Initialize port that listens for new Proxy connections	
 	def __init__(self, port, connectionHandler):
 		self.connectionHandler = connectionHandler
 		self.bindPort(port)
+		self.end = False
 		log.info("__init__() completed")
 
 	#Bind a port to the listener
@@ -27,17 +29,27 @@ class ProxyConnectionListener:
 			socket.SOCK_STREAM)
 		self.listener.bind((host, port))
 		self.listener.listen(LISTENER_BACKLOG)
+		self.listener.settimeout(self.BLOCK_TIMEOUT)
 
 	#Await connections and pass them to the connection handler
 	def start(self):
-		while(True):
+		while(not self.end):
 			try:
 				log.info("Listening for connections")
 				conn, addr = self.listener.accept()
 				log.info("Received new connection from " + str(addr))
 				self.connectionHandler.processConnection(conn, addr)
+			except socket.timeout:
+				log.info("timeout")
+				continue
 			except socket.error, msg:
-				self.log.error(msg)
+				log.error(msg)
+				
+		self.listener.close()
+
+	#Stop activity on this listener
+	def stop(self):
+		self.end = True
 				
 #Run this module alone as a test giving it a port as an argument
 if(__name__ == "__main__"):

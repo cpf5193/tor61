@@ -9,18 +9,30 @@
 import sys, threading, Tor61Log
 from ProxyConnectionListener import ProxyConnectionListener
 log = Tor61Log.getLog()
+import Queue
 
 class HttpWriter:
+	BLOCK_TIMEOUT = 2
 	#Store the socket that will be written to and created a buffer
 	#to write from
 	def __init__(self, sock, inputSource):
 		self.sock = sock
 		self.buffer = inputSource
+		self.end = False
 		
 	#While there is data to be sent, send it
 	def start(self):
-		while(True):
-			if(self.buffer.hasNext()):
-				toSend = self.buffer.getNext()
-				self.sock.send(toSend)
-				log.info("Sent: '" + toSend.strip() + "'")
+		while(not self.end):
+			nextItem = None
+			try:
+				nextItem = self.buffer.get(True, self.BLOCK_TIMEOUT)
+			except Queue.Empty:
+				log.info("timeout")
+				continue
+			if not self.end:
+				self.sock.send(nextItem)
+				log.info("Sent: '" + nextItem.strip() + "'")
+			
+	#Stops all activity
+	def stop(self):
+		self.end = True

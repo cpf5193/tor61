@@ -10,17 +10,16 @@
 import sys, threading, Tor61Log
 from HttpReader import HttpReader
 from HttpWriter import HttpWriter
-from HttpBuffer import HttpBuffer
-from HttpCellConverter import HttpCellConverter
+import Queue
 
 log = Tor61Log.getLog()
 
 class HttpConnection:
 	#Initialize port that listens for new Proxy connections	
 	def __init__(self, sock):
-		self.buffer = HttpBuffer()
-		self.converter = HttpCellConverter(self.buffer)
-		self.reader = HttpReader(sock, self.converter)
+		self.buffer = Queue.Queue()
+		self.sock = sock
+		self.reader = HttpReader(sock, self)
 		self.writer = HttpWriter(sock, self.buffer)
 		log.info("__init__() completed")
 		
@@ -32,3 +31,20 @@ class HttpConnection:
 			args=())
 		readThread.start()
 		writeThread.start()
+
+	#Asynchronous method for putting an HTTP message into the write
+	#buffer
+	def putHttp(self, message):
+		log.info(message.strip())
+		t = threading.Thread(target=self.putHttpWorker,args=(message,))
+		t.start()
+		
+	#Worker thread for placing an Http message
+	def putHttpWorker(self, message):
+		self.buffer.put(message, True)
+		
+	#Stops all activity on worker threads
+	def stop(self):
+		self.reader.stop()
+		self.writer.stop()
+		self.sock.close()

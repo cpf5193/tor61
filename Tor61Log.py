@@ -9,7 +9,7 @@
 import logging
 
 #Set up the logger
-FORMAT = '%(asctime)s %(module)s.%(funcName)s {%(thread)d} %(levelname)s: %(message)s'
+FORMAT = '%(asctime)s %(module)s.%(funcName)s {%(threadName)s} %(levelname)s: %(message)s'
 logging.basicConfig(format=FORMAT)
 logger = logging.getLogger('Tor61')
 logger.setLevel(logging.INFO)

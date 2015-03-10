@@ -55,11 +55,14 @@ class Router(object):
     # Find three other routers and create a circuit
     peers = self.getPeers()
 
-    # Create a new connection between this router and the first peer
-    conn = RouterConnection.RouterConnection(self, 0x0000, peers[0]['ip'], peers[0]['port'])
-    conn.connectToRouter()
+    # Create an initial socket
+    s = socket.socket(AF_INET, SOCK_STREAM)
+    s.connect(peers[0]['ip'], peers[0]['port'])
 
-    # Add this connection to the table
+    # Create a new connection between this router and the first peer
+    conn = RouterConnection.RouterConnection(self, 0x0000, peers[0]['ip'], peers[0]['port'], s)
+
+    # Add this connection to the connection table
     connections[(peers[0]['ip'], peers[0]['port'])] = conn
     
     # Send an OPEN cell to the first peer
@@ -130,8 +133,7 @@ class Router(object):
     circuitId = 0x0003
     while(True):
       (conn, address) = socket.accept()
-      rc = RouterConnection.RouterConnection(self, circuitId, address[0], addres\
-s[1], conn)
+      rc = RouterConnection.RouterConnection(self, circuitId, address[0], address[1], conn)
       connections[(circuitId, address)] = rc
 
   #############################################
@@ -157,10 +159,8 @@ s[1], conn)
       relayCell = RelayCell.setBuffer(msg)
       relayCmd = relayCell.getRelayCmd()
       RELAY_CMDS[relayCmd](msg)
-    elif (cmdId == 0x05):
-      CMDS[cmdId](msg, remoteIp, remotePort)
     else:
-      CMDS[cmdId](msg)
+      CMDS[cmdId](msg, remoteIp, remotePort)
 
   #############################################
   ## Destruction functions
@@ -174,8 +174,8 @@ s[1], conn)
   #############################################
   def doOpen(self, connection):
     openMsg = CommandCellOpen.CommandCellOpen(0x0000, 0x05, self.agentId, peers[0]['data'])
-    connection.writeToBuffer(openMsg.getBuffer())
-    reply = connection.readFromRouter()
+    connection.writeToRouter(openMsg.getBuffer())
+    reply = connection.readFromBuffer()
     replyMsg = CommandCellOpen.setBuffer(reply)
     msgType = replyMsg.getCmdId()
     if (msgType == 0x06):
@@ -193,10 +193,10 @@ s[1], conn)
 
   def doCreate(self, connection):
     createMsg = Cell.Cell(0x0001, 0x01)
-    connection.writeToBuffer(createMsg.getBuffer())
-    reply = connection.readFromRouter()
+    connection.writeToRouter(createMsg.getBuffer())
+    reply = connection.readFromBuffer()
     replyMsg = Cell.setBuffer(reply)
-a    msgType = replyMsg.getCmdId()
+    msgType = replyMsg.getCmdId()
     if (msgType == 0x02):
       print "CREATED cell received"
       #Add the mapping of (circuitId, (ip:port)) --> (circuitId, (ip:port))
@@ -214,8 +214,8 @@ a    msgType = replyMsg.getCmdId()
   def doExtend(self, connection, peerArr):
     bodyString = "%s:%s\0%s" % (peerArr['ip'], peerArr['port'], peerArr['data'])
     extendMsg = RelayCell.RelayCell(0x0001, 0x0000, len(bodyString), 0x06, bodyString)
-    connection.writeToBuffer(extendMsg.getBuffer())
-    reply = connection.readFromRouter()
+    connection.writeToRouter(extendMsg.getBuffer())
+    reply = connection.readFromBuffer()
     replyMsg = RelayCell.setBuffer(reply)
     msgType = replyMsg.getCmdId()
     if not (msgType == 0x03):
@@ -235,7 +235,7 @@ a    msgType = replyMsg.getCmdId()
   #############################################
   ## Handle Message Functions
   #############################################
-  def handleOpen(self, msg, remoteIp, remoteHost):
+  def handleOpen(self, msg, remoteIp, remotePort):
     # If we receive an open cell, check for an open tcp connection
     # to the specified router and if it exists send back an 'Opened' cell
     cell = CommandCellOpen.setBuffer(msg)
@@ -244,62 +244,68 @@ a    msgType = replyMsg.getCmdId()
     if (localHost != self.agentId):
       print "Open cell received by wrong host"
       sys.exit(1)
-    elif (remoteIp, remoteHost) not in connections:
+    elif (remoteIp, remotePort) not in connections:
       print "Open request sent on invalid connection"
       sys.exit(1)
     else:
       # Generate an OPENED cell and send over the connection
       openedCell = CommandCellOpen.CommandCellOpen(0x0000, 0x06, remoteHost, localHost)
-      connections[(remoteIp, remoteHost)].writeToBuffer(openedCell.getBuffer())
+      connections[(remoteIp, remotePort)].writeToRouter(openedCell.getBuffer())
   
-  def handleOpenFailed(self, msg):
-    return
-    # The received cell is an Open Failed cell, do appropriate logic
-
-  def handleCreate(self, msg):
-    # The received cell is a Created cell, do appropriate logic
+  def handleOpenFailed(self, msg, remoteIp, remotePort):
+    # Delete this?
     return
 
-  def handleCreated(self, msg):
-    return
-    # The received cell is a Created cell, do appropriate logic
+  def handleCreate(self, msg, remoteIp, remotePort):
+    # The received cell is a Create cell, establish the new circuit number by
+    # Inserting an entry into the routing table as circId --> None
+    cell = Cell.setBuffer(msg)
+    circId = cell.getCircuitId()
+    routingTable[(circId, (remoteIp, remotePort))] = None
 
-  def handleCreateFailed(self, msg):
+    # Generate a CREATED cell and send back
+    createdCell = Cell.Cell(circId, 0x02)
+    connections[(remoteIp, remotePort)].writeToRouter(createdCell.getBuffer())
+
+  def handleCreated(self, msg, remoteIp, remotePort):
+    # The received cell is a CREATED cell, enter the 
+
+  def handleCreateFailed(self, msg, remoteIp, remotePort):
     # The received cell is a Create Failed cell, do appropriate logic
     return
 
-  def handleDestroy(self, msg):
+  def handleDestroy(self, msg, remoteIp, remotePort):
     # The received cell is a Destroy cell, do appropriate logic
     return
 
-  def handleBegin(self, msg):
+  def handleBegin(self, msg, remoteIp, remotePort):
     # The received cell is a relay begin cell, do appropriate logic
     return
 
-  def handleData(self, msg):
+  def handleData(self, msg, remoteIp, remotePort):
     # The received cell is a relay data cell, do appropriate logic
     return
 
-  def handleEnd(self, msg):
+  def handleEnd(self, msg, remoteIp, remotePort):
     # The received cell is a relay end cell, do appropriate logic
     return
 
-  def handleConnected(self, msg):
+  def handleConnected(self, msg, remoteIp, remotePort):
     # The received cell is a relay connected cell, do appropriate logic
     return
 
-  def handleExtend(self, msg):
+  def handleExtend(self, msg, remoteIp, remotePort):
     # The received cell is a relay extend cell, do appropriate logic
     return
 
-  def handleExtended(self, msg):
+  def handleExtended(self, msg, remoteIp, remotePort):
     # The received cell is a relay extended cell, do appropriate logic
     return
 
-  def handleBeginFailed(self, msg):
+  def handleBeginFailed(self, msg, remoteIp, remotePort):
     # The received cell is a relay Begin Failed cell, do appropriate logic
     return
 
-  def handleExtendFailed(self, msg):
+  def handleExtendFailed(self, msg, remoteIp, remotePort):
     # The received cell is a relay Extend Failed cell, do appropriate logic
     return

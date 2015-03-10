@@ -20,8 +20,8 @@ class RouterConnection(object):
     # e.g. readFromRouter() && readFromBuffer()
     fromRouter = threading.Thread(target=readFromRouter, args=())
     fromRouter.start()
-    toRouter = threading.Thread(target=readFromBuffer(), args=())
-    toRouter.start()
+    #toRouter = threading.Thread(target=readFromBuffer(), args=())
+    #toRouter.start()
 
   def disconnectFromRouter():
     #send a message to router first?
@@ -42,18 +42,8 @@ class RouterConnection(object):
       # (origin router should process the message and decide what to do with it)
 
   def readFromBuffer():
-    # need to come up with some way to listen to the queue other than
-    # sitting in a loop and sleeping for some number of milliseconds
-
-    # Take a queued message from the buffer and write to the router
-    while(True):
-      if (self.buffer.empty()):
-        time.sleep(250)
-      else:
-        while(not self.buffer.empty()):
-          msg = self.buffer.get()
-          writeToRouter(msg)
-
+    return self.buffer.get(true) # blocking operation
+     
   # Write to the remote router
   def writeToRouter(msg):
     # send the indicated message to the router

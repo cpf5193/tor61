@@ -16,7 +16,7 @@ class RelayCell(Cell.Cell):
   BODY_LEN_INDEX = 11
   RELAY_CMD_INDEX = 13
 
-  def __init__(self, circuitId, streamId, bodyLen, relayCmd, body):
+  def __init__(self, circuitId, streamId, bodyLen, relayCmd, body=None):
     padding = '0'.zfill(LENGTH - RELAY_HEAD_LEN - bodyLen)
     if (body == None):
       endString = padding

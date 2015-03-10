@@ -49,6 +49,7 @@ class RouterConnection(object):
     # send the indicated message to the router
     try:
       self.socket.sendAll(msg)
+      return true
     except:
       print "Failed to write to router"
-      sys.exit(1)
+      return false

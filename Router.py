@@ -1,5 +1,5 @@
 import CommandCellOpen, RelayCell, Cell, RouterConnection
-import os, threading, subprocess, time, socket
+import os, threading, subprocess, time, socket, re
 from random import randint
 
 class Router(object):
@@ -66,10 +66,10 @@ class Router(object):
     connections[(peers[0]['ip'], peers[0]['port'])] = conn
     
     # Send an OPEN cell to the first peer
-    self.doOpen(conn)
+    self.doOpen(conn, peers[0]['data'])
     
     # Send a CREATE cell
-    self.doCreate(conn)
+    self.doCreate(conn, 0x0001)
     
     # Send a RELAY EXTEND cell x2 using the stream id 0x0000 
     # and the circuit id 0x0001
@@ -86,10 +86,10 @@ class Router(object):
     socket.listen(5)
     while(True):
       (conn, address) = socket.accept()
-      rc = RouterConnection.RouterConnection(self, nextCircId, address[0], address[1], conn)
-      NEXT_CIRC_ID += 2
+      rc = RouterConnection.RouterConnection(self, NEXT_CIRC_ID, address[0], address[1], conn)
       connections[address] = rc
-  
+      NEXT_CIRC_ID += 2
+
   def getPeers(self):
     print "fetching registered routers"
     string = "python fetch.py Tor61Router-%s" % self.groupNum
@@ -134,7 +134,7 @@ class Router(object):
     while(True):
       (conn, address) = socket.accept()
       rc = RouterConnection.RouterConnection(self, circuitId, address[0], address[1], conn)
-      connections[(circuitId, address)] = rc
+      connections[address] = rc
 
   #############################################
   ## Reading/Delegating functions
@@ -172,16 +172,17 @@ class Router(object):
   #############################################
   ## Circuit Creation Send Message functions
   #############################################
-  def doOpen(self, connection):
-    openMsg = CommandCellOpen.CommandCellOpen(0x0000, 0x05, self.agentId, peers[0]['data'])
-    connection.writeToRouter(openMsg.getBuffer())
+  def doOpen(self, connection, toAgentId):
+    openMsg = CommandCellOpen.CommandCellOpen(0x0000, 0x05, self.agentId, toAgentId)
+    if not connection.writeToRouter(openMsg.getBuffer()):
+      print "Failed to send OPEN to router"
+      sys.exit(1)
     reply = connection.readFromBuffer()
     replyMsg = CommandCellOpen.setBuffer(reply)
     msgType = replyMsg.getCmdId()
     if (msgType == 0x06):
       #Opened cell
       print "OPENED cell received"
-      #Send a create?
     elif (msgType == 0x07):
       print "ERROR: received OPEN FAILED cell"
       #We may be able to improve this by picking a different peer and trying
@@ -191,9 +192,11 @@ class Router(object):
       print "ERROR: unexpected command type in response to OPEN"
       sys.exit(1)
 
-  def doCreate(self, connection):
-    createMsg = Cell.Cell(0x0001, 0x01)
-    connection.writeToRouter(createMsg.getBuffer())
+  def doCreate(self, connection, circuitId):
+    createMsg = Cell.Cell(circuitId, 0x01)
+    if not connection.writeToRouter(createMsg.getBuffer()):
+      print "Failed to write to router"
+      sys.exit(1)
     reply = connection.readFromBuffer()
     replyMsg = Cell.setBuffer(reply)
     msgType = replyMsg.getCmdId()
@@ -214,7 +217,9 @@ class Router(object):
   def doExtend(self, connection, peerArr):
     bodyString = "%s:%s\0%s" % (peerArr['ip'], peerArr['port'], peerArr['data'])
     extendMsg = RelayCell.RelayCell(0x0001, 0x0000, len(bodyString), 0x06, bodyString)
-    connection.writeToRouter(extendMsg.getBuffer())
+    if not connection.writeToRouter(extendMsg.getBuffer()):
+      print "Failed to write to router"
+      sys.exit(1)
     reply = connection.readFromBuffer()
     replyMsg = RelayCell.setBuffer(reply)
     msgType = replyMsg.getCmdId()
@@ -246,15 +251,13 @@ class Router(object):
       sys.exit(1)
     elif (remoteIp, remotePort) not in connections:
       print "Open request sent on invalid connection"
-      sys.exit(1)
+      #Send OPEN FAILED
+      failedCell = CommandCellOpen.CommandCellOpen(cell.getCircuitId, 0x07, remoteHost, localHost)
+      connections[(remoteIp, remotePort)].writeToRouter(openedCell.getBuffer())
     else:
       # Generate an OPENED cell and send over the connection
       openedCell = CommandCellOpen.CommandCellOpen(0x0000, 0x06, remoteHost, localHost)
       connections[(remoteIp, remotePort)].writeToRouter(openedCell.getBuffer())
-  
-  def handleOpenFailed(self, msg, remoteIp, remotePort):
-    # Delete this?
-    return
 
   def handleCreate(self, msg, remoteIp, remotePort):
     # The received cell is a Create cell, establish the new circuit number by
@@ -266,13 +269,6 @@ class Router(object):
     # Generate a CREATED cell and send back
     createdCell = Cell.Cell(circId, 0x02)
     connections[(remoteIp, remotePort)].writeToRouter(createdCell.getBuffer())
-
-  def handleCreated(self, msg, remoteIp, remotePort):
-    # The received cell is a CREATED cell, enter the 
-
-  def handleCreateFailed(self, msg, remoteIp, remotePort):
-    # The received cell is a Create Failed cell, do appropriate logic
-    return
 
   def handleDestroy(self, msg, remoteIp, remotePort):
     # The received cell is a Destroy cell, do appropriate logic
@@ -295,17 +291,37 @@ class Router(object):
     return
 
   def handleExtend(self, msg, remoteIp, remotePort):
-    # The received cell is a relay extend cell, do appropriate logic
-    return
+    cell = RelayCell.setBuffer(msg)
+    bodyString = cell.getBody()
+    (ip, port, aid) = re.split('\0:', bodyString)
+    
+    routingKey = (cell.getCircuitId(), (remoteIp, remotePort))
 
-  def handleExtended(self, msg, remoteIp, remotePort):
-    # The received cell is a relay extended cell, do appropriate logic
-    return
+    if routingKey not in self.routingTable:
+      print "Invalid destination in RELAY EXTEND"
+      sys.exit(1)
+    elif self.routingTable[routingKey] == None:
+      # The extend is meant for this router, do the extend
+      createCell = Cell.Cell(cell.getCircuitId(), cell.getCmdId())
 
-  def handleBeginFailed(self, msg, remoteIp, remotePort):
-    # The received cell is a relay Begin Failed cell, do appropriate logic
-    return
-
-  def handleExtendFailed(self, msg, remoteIp, remotePort):
-    # The received cell is a relay Extend Failed cell, do appropriate logic
-    return
+      # Create a connection between this router and the next one
+      if (ip, port) not in connections:
+        # Create a new socket
+        s = socket.socket(AF_INET, SOCK_STREAM)
+        s.connect(ip, port)
+        # Create a new connection between this router and the specified peer
+        conn = RouterConnection.RouterConnection(self, NEXT_CIRC_ID, ip, port, s)
+        # Add this connection to the connection table
+        connections[(ip, port)] = conn
+        # Open the TCP connection
+        doOpen(conn, aid)
+      doCreate(connections[(ip, port)], NEXT_CIRC_ID)
+      # TODO: create and catch exception in doCreate so we can report
+      # an EXTEND FAILED when the create fails
+      extendCell = RelayCell.RelayCell(NEXT_CIRC_ID, cell.getStreamId(), 0, 0x07)
+      connections[(ip, port)].writeToRouter(extendCell.getBuffer())
+      self.routingTable[routingKey] = (NEXT_CIRC_ID, (ip, port))
+      NEXT_CIRC_ID += 2
+    else:
+      # Pass on the relay extend as indicated in the routing table
+      self.connections[(ip, port)].writeToRouter(cell.getBuffer())

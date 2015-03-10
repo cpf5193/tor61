@@ -2,34 +2,12 @@ import CommandCellOpen, RelayCell, Cell, RouterConnection
 import os, threading, subprocess, time, socket, re
 from random import randint
 
+NEXT_CIRC_ID = 0x0003
+
 class Router(object):
   #############################################
   ## Constructor
   #############################################
-  CMDS = {
-    0x01: handleCreate,
-    0x02: handleCreated,
-    0x03: handleRelay,
-    0x04: handleDestroy,
-    0x05: handleOpen,
-    0x06: handleOpened,
-    0x07: handleOpenFailed,
-    0x08: handleCreateFailed
-  }
-
-  RELAY_CMDS = {
-    0x01: handleBegin,
-    0x02: handleData,
-    0x03: handleEnd,
-    0x04: handleConnected,
-    0x06: handleExtend,
-    0x07: handleExtended,
-    0x0b: handleBeginFailed,
-    0x0c: handleExtendFailed
-  }
-
-  NEXT_CIRC_ID = 0x0003
-
   def __init__(self, converter, groupNum, instanceNum, port):
     self.routingTable = {}
     self.timers = {}
@@ -38,7 +16,29 @@ class Router(object):
     self.groupNum = groupNum
     self.instanceNum = instanceNum
     self.port = port
-    self.agentId = (groupNum << 16) | instanceNum
+    self.agentId = str((int(groupNum) << 16) | int(instanceNum))
+    self.CMDS = {
+      0x01: self.handleCreate,
+      0x02: self.unexpectedCommand,
+      0x03: self.unexpectedCommand,
+      0x04: self.handleDestroy,
+      0x05: self.handleOpen,
+      0x06: self.unexpectedCommand,
+      0x07: self.unexpectedCommand,
+      0x08: self.unexpectedCommand
+    }
+    
+    self.RELAY_CMDS = {
+      0x01: self.handleBegin,
+      0x02: self.handleData,
+      0x03: self.handleEnd,
+      0x04: self.unexpectedCommand,
+      0x06: self.unexpectedCommand,
+      0x07: self.unexpectedCommand,
+      0x0b: self.unexpectedCommand,
+      0x0c: self.unexpectedCommand
+    }
+
 
   #############################################
   ## Router startup functions
@@ -48,22 +48,24 @@ class Router(object):
     string = "python registration_client.py %s Tor61Router-%s-%s %s" % (self.port, self.groupNum, self.instanceNum, self.agentId)
     print string
     thread = threading.Thread(target=os.system, args=(string,))
+    thread.daemon = True
     thread.start()
 
   def createCircuit(self):
     print "Creating circuit (incomplete)"
     # Find three other routers and create a circuit
     peers = self.getPeers()
+    print peers
 
     # Create an initial socket
-    s = socket.socket(AF_INET, SOCK_STREAM)
-    s.connect(peers[0]['ip'], peers[0]['port'])
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((peers[0]['ip'], int(peers[0]['port'])))
 
     # Create a new connection between this router and the first peer
     conn = RouterConnection.RouterConnection(self, 0x0000, peers[0]['ip'], peers[0]['port'], s)
 
     # Add this connection to the connection table
-    connections[(peers[0]['ip'], peers[0]['port'])] = conn
+    self.connections[(peers[0]['ip'], peers[0]['port'])] = conn
     
     # Send an OPEN cell to the first peer
     self.doOpen(conn, peers[0]['data'])
@@ -77,18 +79,6 @@ class Router(object):
     self.doExtend(conn, peers[2])
 
     print "Successfully created circuit with id 0x0001"
-    
-    # Start listening for other connections once the circuit is created
-    connectionAccepter = socket.socket(AF_INET, SOCK_STREAM)
-    host = socket.getHostName()
-    port = self.port
-    socket.bind((host, port))
-    socket.listen(5)
-    while(True):
-      (conn, address) = socket.accept()
-      rc = RouterConnection.RouterConnection(self, NEXT_CIRC_ID, address[0], address[1], conn)
-      connections[address] = rc
-      NEXT_CIRC_ID += 2
 
   def getPeers(self):
     print "fetching registered routers"
@@ -107,10 +97,11 @@ class Router(object):
       randPeer = peers[randint(0, len(peers)-1)]
       peerObj = {}
       peerObj['ip'] = randPeer[0]
-      peerObj['socket'] = randPeer[1]
+      peerObj['port'] = randPeer[1]
       peerObj['data'] = randPeer[2]
       circuitPeers.append(peerObj)
     print "circuitPeers: ", circuitPeers
+    return circuitPeers
 
   def manageTimeouts(self):
     #create a new thread to manage the timer table,
@@ -119,22 +110,32 @@ class Router(object):
 
   def start(self):
     self.registerRouter()
+    # Start listening for other connections once the circuit is created
+    connectionAccepter = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    host = socket.gethostname()
+    port = self.port
+    connectionAccepter.bind((host, int(port)))
+    connectionAccepter.listen(5)
+    #threading.thread
+    thread = threading.Thread(target=self.handleNewConnections, args=(connectionAccepter,))
+    thread.daemon = True
+    thread.start()
+    time.sleep(1) #Allow time for the registration to happen
+    #Should try to make sure there are available peers
+    self.createCircuit()
+
+  def handleNewConnections(self, socket):
+    while(True):
+      try:
+        (conn, address) = socket.accept()
+        rc = RouterConnection.RouterConnection(self, Router.NEXT_CIRC_ID, address[0], address[1], conn)
+        self.connections[address] = rc
+        Router.NEXT_CIRC_ID += 2
+      except KeyboardInterrupt:
+        sys.exit(1)
     time.sleep(2) #Allow time for the registration to happen
     #Should try to make sure there are available peers
     self.createCircuit()
-    
-    print "Starting the router"
-    # Start listening for other connections once the circuit is created
-    connectionAccepter = socket.socket(AF_INET, SOCK_STREAM)
-    host = socket.getHostName()
-    port = self.port
-    socket.bind((host, port))
-    socket.listen(5)
-    circuitId = 0x0003
-    while(True):
-      (conn, address) = socket.accept()
-      rc = RouterConnection.RouterConnection(self, circuitId, address[0], address[1], conn)
-      connections[address] = rc
 
   #############################################
   ## Reading/Delegating functions
@@ -158,9 +159,9 @@ class Router(object):
     if (cmdId == 0x03):
       relayCell = RelayCell.setBuffer(msg)
       relayCmd = relayCell.getRelayCmd()
-      RELAY_CMDS[relayCmd](msg)
+      self.RELAY_CMDS[relayCmd](msg)
     else:
-      CMDS[cmdId](msg, remoteIp, remotePort)
+      self.CMDS[cmdId](msg, remoteIp, remotePort)
 
   #############################################
   ## Destruction functions
@@ -307,21 +308,26 @@ class Router(object):
       # Create a connection between this router and the next one
       if (ip, port) not in connections:
         # Create a new socket
-        s = socket.socket(AF_INET, SOCK_STREAM)
-        s.connect(ip, port)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, int(port)))
         # Create a new connection between this router and the specified peer
-        conn = RouterConnection.RouterConnection(self, NEXT_CIRC_ID, ip, port, s)
+        conn = RouterConnection.RouterConnection(self, Router.NEXT_CIRC_ID, ip, port, s)
         # Add this connection to the connection table
         connections[(ip, port)] = conn
         # Open the TCP connection
         doOpen(conn, aid)
-      doCreate(connections[(ip, port)], NEXT_CIRC_ID)
+      doCreate(connections[(ip, port)], Router.NEXT_CIRC_ID)
       # TODO: create and catch exception in doCreate so we can report
       # an EXTEND FAILED when the create fails
-      extendCell = RelayCell.RelayCell(NEXT_CIRC_ID, cell.getStreamId(), 0, 0x07)
+      extendCell = RelayCell.RelayCell(Router.NEXT_CIRC_ID, cell.getStreamId(), 0, 0x07)
       connections[(ip, port)].writeToRouter(extendCell.getBuffer())
-      self.routingTable[routingKey] = (NEXT_CIRC_ID, (ip, port))
-      NEXT_CIRC_ID += 2
+      self.routingTable[routingKey] = (Router.NEXT_CIRC_ID, (ip, port))
+      self.routingTable[(Router.NEXT_CIRC_ID, (ip, port))] = routingKey
+      Router.NEXT_CIRC_ID += 2
     else:
       # Pass on the relay extend as indicated in the routing table
       self.connections[(ip, port)].writeToRouter(cell.getBuffer())
+
+  def unexpectedCommand():
+    print "Received unexpected command"
+    sys.exit(1)

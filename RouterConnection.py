@@ -2,26 +2,20 @@ import Router
 import Queue, time
 
 class RouterConnection(object):
-  def __init__(self, router, circuitId, ip, port):
+  def __init__(self, router, circuitId, ip, port, socket):
     self.buffer = Queue(100000)
     self.circuitId = circuitId
     self.router = router # The router that this RouterConnection is a part of
     self.ip = ip
     self.port = port
+    self.socket = socket
+    self.startThreads()
   
   #############################################
   ## Connection Functions
   #############################################
-  def connectToRouter(self):
-    # do a tcp connect to the specified router
-    tcpSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    errno = tcpSocket.connect_ex(self.ip, self.port)
-    if not errno == 0:
-      print "Failed to create tcp connection to first peer"
-      sys.exit(1)
-    print "TCP Connection created to %s:%s" % (self.ip, self.port)
-    self.socket = tcpSocket
-
+  
+  def startThreads(self):
     #start the reader and writer threads
     # e.g. readFromRouter() && readFromBuffer()
     fromRouter = threading.Thread(target=readFromRouter, args=())
@@ -44,7 +38,7 @@ class RouterConnection(object):
   def readFromRouter():
     while(True):
       routerMsg = self.socket.recv(Cell.LENGTH)
-      router.handleRouterMessage(routerMsg)
+      router.handleRouterMessage(routerMsg, self.ip, self.port)
       # (origin router should process the message and decide what to do with it)
 
   def readFromBuffer():
@@ -63,7 +57,6 @@ class RouterConnection(object):
   # Write to the remote router
   def writeToRouter(msg):
     # send the indicated message to the router
-    # TODO: add try/catch
     try:
       self.socket.sendAll(msg)
     except:

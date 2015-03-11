@@ -1,5 +1,5 @@
 import Router, Cell
-import Queue, time, threading
+import Queue, time, threading, socket
 
 class RouterConnection(object):
   def __init__(self, router, circuitId, ip, port, socket):
@@ -9,6 +9,7 @@ class RouterConnection(object):
     self.ip = ip
     self.port = port
     self.socket = socket
+    self.end = False
     self.startThreads()
   
   #############################################
@@ -37,20 +38,38 @@ class RouterConnection(object):
 
   # Read from the remote router
   def readFromRouter(self):
-    while(True):
-      routerMsg = self.socket.recv(Cell.LENGTH)
-      router.handleRouterMessage(routerMsg, self.ip, self.port)
-      # (origin router should process the message and decide what to do with it)
+    while not self.end:
+      try:
+        print "Listening on router %s:%s" % (self.ip, self.port)
+        routerMsg = self.socket.recv(Cell.LENGTH)
+        if not self.end:
+          self.router.handleRouterMessage(routerMsg, self.ip, self.port)
+      except socket.timeout:
+        print "Socket timeout"
+        continue
+        # (origin router should process the message and decide what to do with it)
 
   def readFromBuffer(self):
-    return self.buffer.get(true) # blocking operation
+    print "reading from buffer: "
+    if not self.end:
+      try:
+        return self.buffer.get(True, self.BLOCK_TIMEOUT) # blocking operation
+      except Queue.Empty:
+        print "Queue timeout"
      
   # Write to the remote router
   def writeToRouter(self, msg):
     # send the indicated message to the router
+    if self.end:
+      return False
     try:
-      self.socket.sendAll(msg)
-      return true
-    except:
-      print "Failed to write to router"
-      return false
+      print "Trying to send msg %s over socket %s:%s " % (msg, self.ip, self.port)
+      self.socket.sendall(msg)
+      return True
+    except socket.error as msg:
+      print "Failed to write to router: " % msg
+      return False
+
+  def stop(self):
+    self.end = True
+    self.disconnectFromRouter()

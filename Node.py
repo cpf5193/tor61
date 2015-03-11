@@ -14,6 +14,7 @@ def main():
     router.start()
   except KeyboardInterrupt:
     print "Shutting down."
+    router.stop()
     sys.exit(0)
 
 if __name__ == '__main__':

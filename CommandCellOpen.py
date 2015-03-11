@@ -13,23 +13,23 @@ OPENED_ID_INDEX = 7
 class CommandCellOpen(Cell.Cell):
   def __init__(self, circuitId, cmdType, openerId, openedId):
     padding = '0'.zfill(Cell.LENGTH - OPEN_HEAD_LEN)
-    self.buffer = super(CommandCellOpen, self).__init__(circuitId, cmdType)
-    self.buffer = pack_into('!IIs', self.buffer, OPENER_ID_INDEX, openerId, openedId, padding)
+    print "openerId: ", openerId, "openedId: ", openedId
+    self.buffer = pack(COMMAND_FORMAT, circuitId, cmdType, int(openerId), int(openedId), padding)
 
   def setBuffer(buffer):
     self.buffer = buffer
 
-  def getOpenerId():
+  def getOpenerId(self):
     openerId, rest = unpack_from('!Is', self.buffer, OPENER_ID_INDEX)
     return openerId
 
-  def getOpenedId():
+  def getOpenedId(self):
     openedId, rest = unpack_from('!Is', self.buffer, OPENED_ID_INDEX)
     return openedId
 
-  def getBuffer():
+  def getBuffer(self):
     return self.buffer
 
-  def toString():
+  def toString(self):
     circuitId, cmdType, openerId, openedId, rest = unpack(COMMAND_FORMAT, self.buffer)
-    return "CommandCellOpen: [circuitId: %x, cmdType: %x, openerId: %x, openedId: %x, rest: %s]" % (circuitId, cmdType, openerId, openedId, rest)
+    return "%x%x%x%x%s" % (circuitId, cmdType, openerId, openedId, rest)

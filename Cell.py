@@ -16,20 +16,20 @@ class Cell(object):
     padding = '0'.zfill(LENGTH - CELL_HEAD_LEN)
     self.buffer = pack('!Hbs', circuitId, cmdType, padding)
 
-  def getCircuitId():
-    circuitId, rest = unpack('!Hs', self.buffer)
+  def getCircuitId(self):
+    circuitId, rest = unpack('!Hs', self.buffer.toString())
     return circuitId
 
-  def getCmdId():
-    cmdType, rest = unpack_from('!bs', self.buffer, CMD_TYPE_INDEX)
+  def getCmdId(self):
+    cmdType, rest = unpack_from('!bs', self.buffer.toString())
     return cmdType
 
-  def getBuffer():
+  def getBuffer(self):
     return self.buffer
 
-  def toString():
+  def toString(self):
     circuitId, cmdType, rest = unpack(CELL_FORMAT, self.buffer)
-    return "Cell: [circuitId: %x, cmdType: %x, rest: %s]" % (circuitId, cmdType, rest)
+    return "%x%x%s" % (circuitId, cmdType, rest)
 
   def setBuffer(self, buffer):
     self.buffer = buffer

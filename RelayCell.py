@@ -17,28 +17,27 @@ class RelayCell(Cell.Cell):
   RELAY_CMD_INDEX = 13
 
   def __init__(self, circuitId, streamId, bodyLen, relayCmd, body=None):
-    padding = '0'.zfill(LENGTH - RELAY_HEAD_LEN - bodyLen)
+    padding = '0'.zfill(Cell.LENGTH - self.RELAY_HEAD_LEN - bodyLen)
     if (body == None):
       endString = padding
     else:
       endString = body + padding
-    super().__init__(self, circuitId, CMD_TYPE)
-    self.buffer = pack_into('!HHIHbs', self.buffer, STREAM_ID_INDEX, streamId, FILLER, DIGEST, bodyLen, relayCmd, endString)
+    self.buffer = pack(self.RELAY_FORMAT, circuitId, self.CMD_TYPE, streamId, self.FILLER, self.DIGEST, bodyLen, relayCmd, endString)
 
-  def getStreamId():
-    streamId, rest = unpack_from('!Hs', self.buffer, STREAM_ID_INDEX)
+  def getStreamId(self):
+    streamId, rest = unpack_from('!Hs', self.buffer, self.STREAM_ID_INDEX)
     return streamId
 
-  def getBodyLen():
-    bodyLen, rest = unpack_from('!Hs', self.buffer, BODY_LEN_INDEX)
+  def getBodyLen(self):
+    bodyLen, rest = unpack_from('!Hs', self.buffer, self.BODY_LEN_INDEX)
     return bodyLen
 
-  def getRelayCmd():
-    relayCmd, rest = unpack_from('!bs', self.buffer, RELAY_CMD_INDEX)
+  def getRelayCmd(self):
+    relayCmd, rest = unpack_from('!bs', self.buffer, self.RELAY_CMD_INDEX)
     return relayCmd
 
-  def getBody():
-    bodyLen, relayCmd, rest = unpack_from('!Hbs', self.buffer, BODY_LEN_INDEX)
+  def getBody(self):
+    bodyLen, relayCmd, rest = unpack_from('!Hbs', self.buffer, self.BODY_LEN_INDEX)
     body = rest[:bodyLen]
     return body
 
@@ -61,12 +60,12 @@ class RelayCell(Cell.Cell):
     else:
       return name
 
-  def getBuffer():
+  def getBuffer(self):
     return self.buffer
 
-  def setBuffer(buffer):
+  def setBuffer(self, buffer):
     self.buffer = buffer
 
-  def toString():
-    circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest = unpack(RELAY_FORMAT, self.buffer)
-    return "RelayCell: [circuitId: %x, cmdType: %x, streamId: %x, filler: %x, digest: %x, bodyLen: %x, relayCmd: %x, rest: %s]" % (circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest)
+  def toString(self):
+    circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest = unpack(self.RELAY_FORMAT, self.buffer)
+    return "%x%x%x%x%x%x%x%s" % (circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest)

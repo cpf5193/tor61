@@ -14,10 +14,12 @@ def main():
   log.info("Starting Router")
   try:
     router.start()
+    log.info("Router finished.")
   except KeyboardInterrupt:
-    log.info("Shutting down.")
+    log.info("Interupted! Shutting down.")
     router.stop()
     sys.exit(0)
+  log.info("Router shutting down")
 
 if __name__ == '__main__':
   main()

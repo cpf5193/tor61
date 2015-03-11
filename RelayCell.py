@@ -7,7 +7,7 @@ RelayCell represents a Tor61 Relay cell of any type
 '''
 
 class RelayCell(Cell.Cell):
-  RELAY_FORMAT = '!HbHHIHbs'
+  RELAY_FORMAT = '!HbHHIHb498s'
   RELAY_HEAD_LEN = 14
   FILLER = 0x0000
   DIGEST = 0x00000000
@@ -25,19 +25,19 @@ class RelayCell(Cell.Cell):
     self.buffer = pack(self.RELAY_FORMAT, circuitId, self.CMD_TYPE, streamId, self.FILLER, self.DIGEST, bodyLen, relayCmd, endString)
 
   def getStreamId(self):
-    streamId, rest = unpack_from('!Hs', self.buffer, self.STREAM_ID_INDEX)
+    streamId, rest = unpack_from('!H507s', self.buffer, self.STREAM_ID_INDEX)
     return streamId
 
   def getBodyLen(self):
-    bodyLen, rest = unpack_from('!Hs', self.buffer, self.BODY_LEN_INDEX)
+    bodyLen, rest = unpack_from('!H501s', self.buffer, self.BODY_LEN_INDEX)
     return bodyLen
 
   def getRelayCmd(self):
-    relayCmd, rest = unpack_from('!bs', self.buffer, self.RELAY_CMD_INDEX)
-    return relayCmd
+    relayCmd, rest = unpack_from('!b499s', self.buffer, self.RELAY_CMD_INDEX)
+    return hex(relayCmd)
 
   def getBody(self):
-    bodyLen, relayCmd, rest = unpack_from('!Hbs', self.buffer, self.BODY_LEN_INDEX)
+    bodyLen, relayCmd, rest = unpack_from('!Hb498s', self.buffer, self.BODY_LEN_INDEX)
     body = rest[:bodyLen]
     return body
 

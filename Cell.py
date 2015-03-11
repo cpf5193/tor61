@@ -1,4 +1,7 @@
 from struct import pack, unpack, unpack_from
+import Tor61Log
+
+log = Tor61Log.getLog()
 
 '''
 A base class representing the basic format of a Cell.
@@ -6,31 +9,37 @@ All cells contain a circuit id and command type at the beginning of the cell.
 The 'Created', 'Create', 'Create Failed', and 'Destroy' command cells can be
 directly represented by the overall Cell class.
 '''
+LENGTH = 512
+CELL_FORMAT = '!Hb509s'
+CELL_HEAD_LEN = 3
+CMD_TYPE_INDEX = 2
 
 class Cell(object):
-  LENGTH = 512
-  CELL_FORMAT = '!Hbs'
-  CELL_HEAD_LEN = 3
-  CMD_TYPE_INDEX = 2
-
   def __init__(self, circuitId, cmdType):
     padding = '0'.zfill(LENGTH - CELL_HEAD_LEN)
-    self.buffer = pack('!Hbs', circuitId, cmdType, padding)
+    self.buffer = pack(CELL_FORMAT, circuitId, cmdType, padding)
 
-  def getCircuitId():
-    circuitId, rest = unpack('!Hs', self.buffer)
+  def getCircuitId(self):
+    log.info("self.buffer: ")
+    log.info(self.buffer)
+    circuitId, rest = unpack('!H510s', self.buffer)
     return circuitId
 
-  def getCmdId():
-    cmdType, rest = unpack_from('!bs', self.buffer, CMD_TYPE_INDEX)
-    return cmdType
+  def getCmdId(self):
+    cmdType, rest = unpack_from('!b509s', self.buffer, CMD_TYPE_INDEX)
+    log.info(cmdType)
+    return hex(cmdType)
 
-  def getBuffer():
+  def getBuffer(self):
     return self.buffer
 
-  def toString():
-    circuitId, cmdType, rest = unpack(CELL_FORMAT, self.buffer)
-    return "Cell: [circuitId: %x, cmdType: %x, rest: %s]" % (circuitId, cmdType, rest)
+  def toString(self):
+    #circuitId, cmdType, rest = unpack(CELL_FORMAT, self.buffer)
+    #return "%x%x%s" % (circuitId, cmdType, rest)
+    return "%s" % self.buffer
 
   def setBuffer(self, buffer):
     self.buffer = buffer
+
+  def getLength():
+    return LENGTH

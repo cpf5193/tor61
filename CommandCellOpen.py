@@ -5,31 +5,33 @@ from struct import pack, unpack, pack_into, unpack_from
 CommandCellOpen represents an Open, Opened, or Open Failed
 '''
 
+COMMAND_FORMAT = '!HbII501s'
+OPEN_HEAD_LEN = 11
+OPENER_ID_INDEX = 3
+OPENED_ID_INDEX = 7
+
 class CommandCellOpen(Cell.Cell):
-  COMMAND_FORMAT = '!HbIIs'
-  OPEN_HEAD_LEN = 11
-  OPENER_ID_INDEX = 3
-  OPENED_ID_INDEX = 7
-
   def __init__(self, circuitId, cmdType, openerId, openedId):
-    padding = '0'.zfill(LENGTH - OPEN_HEAD_LEN)
-    super().__init__(self, circuitId, cmdType)
-    self.buffer = pack_into('!IIs', self.buffer, OPENER_ID_INDEX, openerId, openedId, padding)
+    padding = '0'.zfill(Cell.LENGTH - OPEN_HEAD_LEN)
+    print "circuitId: ", circuitId, ", cmdType: ", cmdType 
+    print "openerId: ", openerId, "openedId: ", openedId
+    self.buffer = pack(COMMAND_FORMAT, circuitId, cmdType, int(openerId), int(openedId), padding)
 
-  def setBuffer(buffer):
+  def setBuffer(self, buffer):
     self.buffer = buffer
 
-  def getOpenerId():
-    openerId, rest = unpack_from('!Is', self.buffer, OPENER_ID_INDEX)
-    return openerId
+  def getOpenerId(self):
+    openerId, rest = unpack_from('!I504s', self.buffer, OPENER_ID_INDEX)
+    return str(openerId)
 
-  def getOpenedId():
-    openedId, rest = unpack_from('!Is', self.buffer, OPENED_ID_INDEX)
-    return openedId
+  def getOpenedId(self):
+    openedId, rest = unpack_from('!I500s', self.buffer, OPENED_ID_INDEX)
+    return str(openedId)
 
-  def getBuffer():
+  def getBuffer(self):
     return self.buffer
 
-  def toString():
-    circuitId, cmdType, openerId, openedId, rest = unpack(COMMAND_FORMAT, self.buffer)
-    return "CommandCellOpen: [circuitId: %x, cmdType: %x, openerId: %x, openedId: %x, rest: %s]" % (circuitId, cmdType, openerId, openedId, rest)
+  def toString(self):
+    #circuitId, cmdType, openerId, openedId, rest = unpack(COMMAND_FORMAT, self.buffer)
+    #return "%x%x%x%x%s" % (circuitId, cmdType, openerId, openedId, rest)
+    return "%s" % self.buffer

@@ -24,7 +24,7 @@ class HttpReader:
 		
 	#Read from the socket as long as there is data
 	def start(self, addr):
-		log.info("starting read from " + str(self.sock.getpeername()))
+		log.info("starting read from " + str(addr))
 		while(not self.end):
 			message = None
 			self.sock.settimeout(self.BLOCK_TIMEOUT)
@@ -38,7 +38,7 @@ class HttpReader:
 				continue
 			if not self.end:
 				log.info("Received: '" + message.strip() + "'")
-				self.converter.putHttp((self.DATA_CMD, (self.sock.getpeername(), message)))
+				self.converter.putHttp((self.DATA_CMD, (addr, message)))
 				
 	
 	#Stops all activity

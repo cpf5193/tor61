@@ -34,8 +34,9 @@ class Cell(object):
     return self.buffer
 
   def toString(self):
-    circuitId, cmdType, rest = unpack(CELL_FORMAT, self.buffer)
-    return "%x%x%s" % (circuitId, cmdType, rest)
+    #circuitId, cmdType, rest = unpack(CELL_FORMAT, self.buffer)
+    #return "%x%x%s" % (circuitId, cmdType, rest)
+    return "%s" % self.buffer
 
   def setBuffer(self, buffer):
     self.buffer = buffer

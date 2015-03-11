@@ -9,10 +9,22 @@
 
 import Queue, threading
 import Tor61Log
+from struct import pack, unpack
 log = Tor61Log.getLog()
 
 class HttpCellConverter:
 	BLOCK_TIMEOUT = 2
+	RELAY_CELL_HEADER_FORMAT = '!HBHHIHB498s'
+	RELAY_CELL_CIRCUIT_ID = 1
+	RELAY_DIGEST = 0
+	THREE = 3
+	ZERO = 0
+	BEGIN_CMD = 1
+	DATA_CMD = 2
+	END_CMD = 3
+	CONNECTED_CMD = 4
+	FAIL_CMD = 11
+	
 	#Store the output buffer
 	def __init__(self):
 		self.httpInputBuffer = Queue.Queue()
@@ -22,14 +34,28 @@ class HttpCellConverter:
 		self.end = False
 		
 	#Place an Http message to convert into a Cell
-	def putHttp(self, sock, message):
-		log.info(message.strip())
-		self.httpInputBuffer.put((sock, message), True)
+	def putHttp(self, message):
+		log.info(message)
+		self.httpInputBuffer.put(message, True)
 		
 	#Place a Tor61 cell to convert into an HTTP message
 	def putCell(self, cell):
-		log.info(str(cell).strip())
+		log.info(cell)
 		self.cellInputBuffer.put(cell, True)
+	
+	#Builds a cell
+	def buildCell(self, body, command):
+		log.info((body, command))
+		cell = pack(self.RELAY_CELL_HEADER_FORMAT,
+			self.RELAY_CELL_CIRCUIT_ID,
+			self.THREE,
+			self.ZERO,
+			self.ZERO,
+			self.RELAY_DIGEST,
+			len(body),
+			command,
+			body)
+		return cell
 		
 	#Get a Http message that has been converted from a Tor61 Cell
 	def getCellOutputBuffer(self):
@@ -44,29 +70,36 @@ class HttpCellConverter:
 		self.end = True;
 	
 	#Porcess an Http message
-	def processHttp(self, sock, message):
-		log.info("here");
+	def processHttp(self, message):
 		t = threading.Thread(target=self.processHttpWorker,
-			args=(sock, message))
+			args=(message,))
 		t.start()
+		log.info("started");
+
 	
 	#Worker thread for asynchronous HTTP to Cell conversion
-	def processHttpWorker(self, sock, message):
-		log.info("");
-		self.httpOutputBuffer.put((sock, message), True) #TODO: Actual conversion
+	def processHttpWorker(self, message):
+		log.info(message);
+		command, payload = message
+		addr, body = payload
+		cell = self.buildCell(body, command)
+		self.cellOutputBuffer.put((addr, cell), True)
 	
 	#Process a Cell
 	def processCell(self, cell):
-		log.info("here");
 		t = threading.Thread(target=self.processCellWorker, 
-			args=(cell))
+			args=(cell,))
 		t.start()
-		
+		log.info("started");
+
 	#Worker thread for asynchronous Cell to Http conversion
 	def processCellWorker(self, cell):
-		log.ingo("")
-		self.putCell(cell) #TODO: actual conversion
-
+		log.info(cell)
+		addr, payload = cell
+		circuit, three, streamId, zero, digest, length, command, body = unpack(self.RELAY_CELL_HEADER_FORMAT, payload)
+		message = (command, (addr, body.strip("\0")))
+		self.httpOutputBuffer.put(message, True)
+		
 	#Worker thread for reading from incoming Http
 	def httpWorker(self):
 		while(not self.end):
@@ -77,8 +110,7 @@ class HttpCellConverter:
 				log.info("timeout")
 				log.info(self.httpInputBuffer.qsize())
 				continue
-			sock, message = nextItem
-			self.processHttp(sock, message)
+			self.processHttp(nextItem)
 
 	#Worker thread for reading incoming Http
 	def cellWorker(self):

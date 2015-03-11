@@ -18,6 +18,7 @@ class ProxyConnectionListener:
 	#Initialize port that listens for new Proxy connections	
 	def __init__(self, port, connectionHandler):
 		self.connectionHandler = connectionHandler
+		self.streamId = 1
 		self.bindPort(port)
 		self.end = False
 		log.info("__init__() completed")
@@ -38,7 +39,8 @@ class ProxyConnectionListener:
 				log.info("Listening for connections")
 				conn, addr = self.listener.accept()
 				log.info("Received new connection from " + str(addr))
-				self.connectionHandler.processConnection(conn, addr)
+				self.connectionHandler.processConnectionFromBrowser(conn,
+					addr)
 			except socket.timeout:
 				log.info("timeout")
 				continue

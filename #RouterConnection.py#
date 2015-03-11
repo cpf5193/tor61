@@ -1,7 +1,5 @@
-import Router, Cell, Tor61Log
+import Router, Cell
 import Queue, time, threading, socket
-
-log = Tor61Log.getLog()
 
 class RouterConnection(object):
   def __init__(self, router, circuitId, ip, port, socket):

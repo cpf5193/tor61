@@ -15,13 +15,13 @@ CELL_HEAD_LEN = 3
 CMD_TYPE_INDEX = 2
 
 class Cell(object):
-  def __init__(self, circuitId, cmdType):
+  def __init__(self, circuitId = 0x0000, cmdType = 0x00):
     padding = '0'.zfill(LENGTH - CELL_HEAD_LEN)
     self.buffer = pack(CELL_FORMAT, circuitId, cmdType, padding)
 
   def getCircuitId(self):
-    log.info("self.buffer: ")
-    log.info(self.buffer)
+    #log.info("self.buffer: ")
+    #log.info(self.buffer)
     circuitId, rest = unpack('!H510s', self.buffer)
     return circuitId
 

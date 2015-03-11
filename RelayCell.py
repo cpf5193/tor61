@@ -16,7 +16,7 @@ class RelayCell(Cell.Cell):
   BODY_LEN_INDEX = 11
   RELAY_CMD_INDEX = 13
 
-  def __init__(self, circuitId, streamId, bodyLen, relayCmd, body=None):
+  def __init__(self, circuitId = 0x0000, streamId = 0x0000, bodyLen = 0x0000, relayCmd = 0x00, body=None):
     padding = '0'.zfill(Cell.LENGTH - self.RELAY_HEAD_LEN - bodyLen)
     if (body == None):
       endString = padding
@@ -33,7 +33,7 @@ class RelayCell(Cell.Cell):
     return bodyLen
 
   def getRelayCmd(self):
-    relayCmd, rest = unpack_from('!b499s', self.buffer, self.RELAY_CMD_INDEX)
+    relayCmd, rest = unpack_from('!b498s', self.buffer, self.RELAY_CMD_INDEX)
     return hex(relayCmd)
 
   def getBody(self):
@@ -67,5 +67,6 @@ class RelayCell(Cell.Cell):
     self.buffer = buffer
 
   def toString(self):
-    circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest = unpack(self.RELAY_FORMAT, self.buffer)
-    return "%x%x%x%x%x%x%x%s" % (circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest)
+    #circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest = unpack(self.RELAY_FORMAT, self.buffer)
+    #return "%x%x%x%x%x%x%x%s" % (circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest)
+    return "%s" % self.buffer

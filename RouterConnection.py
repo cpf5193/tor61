@@ -40,11 +40,11 @@ class RouterConnection(object):
   def writeToBuffer(self, msg):
     #self.buffer.put(msg)
     self.router.connections[(self.ip, self.port)].buffer.put(msg)
-    log.info("queue: ")
-    log.info(self.buffer)
-    log.info("RouterConnection:")
-    log.info(self)
-    log.info("queue size: %d" % self.buffer.qsize())
+    #log.info("queue: ")
+    #log.info(self.buffer)
+    #log.info("RouterConnection:")
+    #log.info(self)
+    #log.info("queue size: %d" % self.buffer.qsize())
 
   # Read from the remote router
   def readFromRouter(self):
@@ -63,19 +63,19 @@ class RouterConnection(object):
         # (origin router should process the message and decide what to do with it)
 
   def readFromBuffer(self):
-    log.info("reading from buffer: ")
-    log.info(self.buffer)
+    log.info("reading from buffer")
+    #log.info(self.buffer)
     if not self.end:
       try:
         return self.buffer.get(True, self.BLOCK_TIMEOUT) # blocking operation
       except Queue.Empty:
-        log.info("queue: ")
-        log.info(self.buffer)
-        log.info("RouterConnection: ")
-        log.info(self)
-        log.info("router reference: ")
-        log.info(self.router)
-        log.info("queue size: %d" % self.buffer.qsize())
+        #log.info("queue: ")
+        #log.info(self.buffer)
+        #log.info("RouterConnection: ")
+        #log.info(self)
+        #log.info("router reference: ")
+        #log.info(self.router)
+        #log.info("queue size: %d" % self.buffer.qsize())
         log.info("Queue timeout")
      
   # Write to the remote router
@@ -84,7 +84,7 @@ class RouterConnection(object):
     if self.end:
       return False
     try:
-      log.info("Trying to send msg %s over socket %s:%s " % (msg, self.ip, self.port))
+      #log.info("Trying to send msg over socket %s:%s " % (self.ip, self.port))
       self.socket.sendall(msg)
       return True
     except socket.error as msg:

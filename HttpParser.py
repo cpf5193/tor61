@@ -30,10 +30,19 @@ def getHostAndPort(message):
 		return None
 	elif port is None:
 		if(uri.startswith("https")):
+			log.info((host, 443))
 			return (host, 443)
 		else:
-			return (host, 80)
+			hostPort = uri.split(":")
+			if hostPort[1].isdigit():
+				port = int(hostPort[1])
+				log.info((host, port))
+				return (host, port)
+			else:
+				log.info((host, 80))
+				return (host, 80)
 	else:
+		log.info((host, port))
 		return (host, port)
 		
 			

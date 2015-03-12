@@ -1,4 +1,4 @@
-import Router, Tor61Log
+import Router, Tor61Log, HttpCellConverter
 import sys, os
 log = Tor61Log.getLog()
 
@@ -10,7 +10,8 @@ def main():
   groupNum = sys.argv[1]
   instanceNum = sys.argv[2]
   port = sys.argv[3]
-  router = Router.Router(None, groupNum, instanceNum, port)
+  converter = HttpCellConverter.getConverter()
+  router = Router.Router(converter, groupNum, instanceNum, port)
   log.info("Starting Router")
   try:
     router.start()

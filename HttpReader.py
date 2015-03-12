@@ -36,6 +36,9 @@ class HttpReader:
 			except socket.timeout:
 				log.info("timeout")
 				continue
+			except socket.error as msg:
+				log.info(msg)
+				self.connection.killSelf()
 			if not self.end:
 				log.info("Received: '" + message.strip() + "'")
 				self.converter.putHttp((self.DATA_CMD, (addr, message)))

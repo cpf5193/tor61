@@ -40,7 +40,7 @@ class HttpCellConverter:
 		
 	#Place a Tor61 cell to convert into an HTTP message
 	def putCell(self, cell):
-		log.info(cell)
+		log.info((cell[0], cell[1].strip("\0")))
 		self.cellInputBuffer.put(cell, True)
 	
 	#Builds a cell
@@ -71,30 +71,16 @@ class HttpCellConverter:
 	
 	#Porcess an Http message
 	def processHttp(self, message):
-		t = threading.Thread(target=self.processHttpWorker,
-			args=(message,))
-		t.start()
-		log.info("started");
-
-	
-	#Worker thread for asynchronous HTTP to Cell conversion
-	def processHttpWorker(self, message):
 		log.info(message);
 		command, payload = message
 		addr, body = payload
 		cell = self.buildCell(body, command)
 		self.cellOutputBuffer.put((addr, cell), True)
+
 	
 	#Process a Cell
 	def processCell(self, cell):
-		t = threading.Thread(target=self.processCellWorker, 
-			args=(cell,))
-		t.start()
-		log.info("started");
-
-	#Worker thread for asynchronous Cell to Http conversion
-	def processCellWorker(self, cell):
-		log.info(cell)
+		log.info((cell[0], cell[1].strip("\0")))
 		addr, payload = cell
 		circuit, three, streamId, zero, digest, length, command, body = unpack(self.RELAY_CELL_HEADER_FORMAT, payload)
 		message = (command, (addr, body.strip("\0")))

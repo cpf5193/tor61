@@ -33,11 +33,11 @@ class Router(object):
       '0x1': self.handleBegin,
       '0x2': self.handleData,
       '0x3': self.handleEnd,
-      '0x4': self.unexpectedCommand,
+      '0x4': self.handleConnected,
       '0x6': self.handleExtend,
-      '0x7': self.unexpectedCommand,
-      '0xb': self.unexpectedCommand,
-      '0xc': self.unexpectedCommand
+      '0x7': self.handleExtended,
+      '0xb': self.handleBeginFailed,
+      '0xc': self.handleExtendFailed
     }
     self.NEXT_CIRC_ID = 3
     self.end = False
@@ -119,6 +119,7 @@ class Router(object):
       peerObj['data'] = randPeer[2]
       circuitPeers.append(peerObj)
     log.info("circuitPeers: ")
+    
     log.info(circuitPeers)
     return circuitPeers
 
@@ -336,18 +337,83 @@ class Router(object):
 
   def handleBegin(self, msg, remoteIp, remotePort):
     # The received cell is a relay begin cell, do appropriate logic
+    cell = RelayCell.setBuffer(pack('!512s', msg))
+    
+    routingKey = (cell.getCircuitId(), (remoteIp, remotePort))
+
+    if routingKey not in self.routingTable:
+      log.info("Invalid destination in RELAY BEGIN")
+      sys.exit(1)
+    elif self.routingTable[routingKey] == None:
+      self.converter.putCell(((remoteIp, int(remotePort)), msg))
+    else:
+      # Pass on the relay extend as indicated in the routing table
+      self.connections[(ip, port)].writeToRouter(cell.toString())
     return
 
+  def handleBeginFailed(self, msg, remoteIp, remotePort):
+    # The received cell is a begin Failed connected cell, do appropriate logic
+    cell = RelayCell.setBuffer(pack('!512s', msg))
+    
+    routingKey = (cell.getCircuitId(), (remoteIp, remotePort))
+
+    if routingKey not in self.routingTable:
+      log.info("Invalid destination in RELAY BEGIN FAILED")
+      sys.exit(1)
+    elif self.routingTable[routingKey] == None:
+      self.converter.putCell(((remoteIp, int(remotePort)), msg))
+    else:
+      # Pass on the relay extend as indicated in the routing table
+      self.connections[(ip, port)].writeToRouter(cell.toString())
+    return
+    
   def handleData(self, msg, remoteIp, remotePort):
     # The received cell is a relay data cell, do appropriate logic
+    # Create dummy cell then set buffer on the cell
+    cell = RelayCell.setBuffer(pack('!512s', msg))
+    
+    routingKey = (cell.getCircuitId(), (remoteIp, remotePort))
+
+    if routingKey not in self.routingTable:
+      log.info("Invalid destination in RELAY DATA")
+      sys.exit(1)
+    elif self.routingTable[routingKey] == None:
+      self.converter.putCell(((remoteIp, int(remotePort)), msg))
+    else:
+      # Pass on the relay extend as indicated in the routing table
+      self.connections[(ip, port)].writeToRouter(cell.toString())
     return
 
   def handleEnd(self, msg, remoteIp, remotePort):
     # The received cell is a relay end cell, do appropriate logic
+    cell = RelayCell.setBuffer(pack('!512s', msg))
+    
+    routingKey = (cell.getCircuitId(), (remoteIp, remotePort))
+
+    if routingKey not in self.routingTable:
+      log.info("Invalid destination in RELAY END")
+      sys.exit(1)
+    elif self.routingTable[routingKey] == None:
+      self.converter.putCell(((remoteIp, int(remotePort)), msg))
+    else:
+      # Pass on the relay extend as indicated in the routing table
+      self.connections[(ip, port)].writeToRouter(cell.toString())
     return
 
   def handleConnected(self, msg, remoteIp, remotePort):
     # The received cell is a relay connected cell, do appropriate logic
+    cell = RelayCell.setBuffer(pack('!512s', msg))
+    
+    routingKey = (cell.getCircuitId(), (remoteIp, remotePort))
+
+    if routingKey not in self.routingTable:
+      log.info("Invalid destination in RELAY CONNECTED")
+      sys.exit(1)
+    elif self.routingTable[routingKey] == None:
+      self.converter.putCell(((remoteIp, int(remotePort)), msg))
+    else:
+      # Pass on the relay extend as indicated in the routing table
+      self.connections[(ip, port)].writeToRouter(cell.toString())
     return
 
   def handleExtend(self, msg, remoteIp, remotePort):

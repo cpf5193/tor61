@@ -77,7 +77,6 @@ class HttpCellConverter:
 		cell = self.buildCell(body, command)
 		self.cellOutputBuffer.put((addr, cell), True)
 
-	
 	#Process a Cell
 	def processCell(self, cell):
 		log.info((cell[0], cell[1].strip("\0")))

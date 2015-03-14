@@ -1,9 +1,12 @@
 import CommandCellOpen, RelayCell, Cell, RouterConnection, Tor61Log
-import os, threading, subprocess, time, socket, re, sys
+import os, threading, subprocess, time, socket, re, sys, datetime
+from datetime import datetime, timedelta
 from random import randint
 from struct import pack
 
 log = Tor61Log.getLog()
+
+CIRCUIT_TIMEOUT = datetime.timedelta(0, 60 * 5)
 
 class Router(object):
   #############################################
@@ -11,6 +14,7 @@ class Router(object):
   #############################################
   def __init__(self, converter, groupNum, instanceNum, port):
     self.routingTable = {}
+    self.circuitHosts = {}
     self.timers = {}
     self.connections = {} #format: (ip, port) --> RouterConnection
     self.converter = converter
@@ -50,7 +54,6 @@ class Router(object):
     string = "python registration_client.py %s Tor61Router-%s-%s %s" % (self.port, self.groupNum, self.instanceNum, self.agentId)
     log.info(string)
     thread = threading.Thread(target=os.system, args=(string,))
-    thread.daemon = True
     thread.start()
 
   def createCircuit(self):
@@ -139,8 +142,9 @@ class Router(object):
     connectionAccepter.listen(5)
     
     thread = threading.Thread(target=self.createCircuit, args = ())
-    thread.daemon = True
     thread.start()
+    timerThread = threading.Thread(target = self.timerscan, args = ())
+    timerThread.start()
     self.handleNewConnections(connectionAccepter)
     
   def handleNewConnections(self, connectionAccepter):
@@ -174,6 +178,10 @@ class Router(object):
     cell = Cell.Cell()
     cell.setBuffer(pack('!512s', msg))
     circuitId = cell.getCircuitId()
+    
+    self.resetTimer(circuitId)
+    
+    
     cmdId = cell.getCmdId()
     log.info("Command type is %s" % cmdId)
     log.info("cmdId == 0x3 --> %s" % (cmdId == '0x3'))
@@ -194,6 +202,10 @@ class Router(object):
   def destroyCircuit(self, circuitId):
     # Destroy the specified circuit
     log.info("Destroying circuit #%x (incomplete)" % circuitId)
+    toDestroy = self.circuitHosts[circuitId]
+    for host in toDestroy:
+    ip, port = host
+    self.doDestroy(circuitId, ip, host)
   
   #############################################
   ## Circuit Creation Send Message functions
@@ -240,6 +252,7 @@ class Router(object):
         key = None
         value = (connection.circuitId, (connection.remoteIp, connection.remotePort))
         self.routingTable[key] = value
+        self.addAddressToCircuit(circuitId, connection.ip, connection.port)
       elif (msgType == '0x8'):
         log.info("CREATE FAILED cell received")
         sys.exit(1)
@@ -274,7 +287,10 @@ class Router(object):
         else:
           log.info("ERROR: unexpected command type in response to EXTEND")
           sys.exit(1)
-          
+
+  def doDestroy(self, circuitId, remoteIp, removeHost):
+    log.info((circuitID, remoteIp, removeHost))
+    
   #############################################
   ## Handle Message Functions
   #############################################
@@ -472,9 +488,27 @@ class Router(object):
       log.info("Passing on relay extend to %s:%s" % (ip, port))
       self.connections[(ip, port)].writeToBuffer(cell.toString())
 
-  def unexpectedCommand():
+  def unexpectedCommand(self):
     log.info("Received unexpected command")
     sys.exit(1)
+    
+  def resetTimer(self, circuitId):
+    self.timers[circuitId] = datetime.now()
+    
+  def addAddressToCircuit(self, circuitId, ip, port):
+    if circuitId in self.circuitHosts:
+      self.circuitHosts[circuitId].add((ip, port))
+    else:
+      self.circuitHosts[circuitId] = [(ip, port)]
+    
+  def timerScan(self):
+    while not self.end:
+      sleep(CIRCUIT_TIMEOUT.total_seconds()):
+        now = datetime.now()
+        for id in self.timers:
+          if now - self.timers[id] > CIRCUIT_TIMEOUT:
+            destroyCircuit(circuitId)
+            
 
   def stop(self):
     log.info("stopping")

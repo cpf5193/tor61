@@ -27,6 +27,7 @@ class RouterConnection(object):
     fromRouter.daemon = True
     fromRouter.start()
     toRouter = threading.Thread(target=self.bufferToRouter, args=())
+    toRouter.daemon = True
     toRouter.start()
 
   def disconnectFromRouter(self):
@@ -49,8 +50,8 @@ class RouterConnection(object):
         if not self.end:
           log.info("self.remoteIp: %s, self.remotePort: %s" % (self.remoteIp, self.remotePort))
           log.info("socket.ip: %s, socket.port: %s" % self.socket.getsockname())
-          sockinfo = self.socket.getsockname()
-          self.router.handleRouterMessage(routerMsg, sockinfo[0], sockinfo[1])
+          #sockinfo = self.socket.getsockname()
+          self.router.handleRouterMessage(routerMsg, self.remoteIp, self.remotePort)
       except socket.timeout:
         log.info("Socket timeout")
         continue

@@ -45,4 +45,14 @@ def getHostAndPort(message):
 		log.info((host, port))
 		return (host, port)
 		
-			
+def modifyMessage(message):
+	modified = message.replace("Proxy-connection: keep-alive", 
+		"Proxy-connection: close", 1)
+	modified = modified.replace("Connection: keep-alive", 
+		"Connection: close", 1)
+	modified = modified.replace(" HTTP/2.0", " HTTP/1.0", 1)
+	modified = modified.replace(" HTTP/1.1", " HTTP/1.0", 1)
+	return modified
+		
+def isConnect(message):
+	return message.lower().startswith("connect")

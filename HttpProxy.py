@@ -41,11 +41,12 @@ class HttpProxy:
 	#Worker thread
 	def processConnectionFromBrowserWorker(self, conn, addr):
 		log.info(addr)
-		self.connections[addr] = HttpConnection(conn, self)
+		self.connections[addr] = HttpConnection(conn, self, addr)
 		while not self.connections[addr].end:
 			try:
 				firstMessage = conn.recv(self.READ_SIZE)
 				if len(firstMessage) == 0:
+					log.info("First message was empty, killing " + str(addr))
 					self.connections[addr].killSelf()
 				else:
 					break
@@ -54,6 +55,7 @@ class HttpProxy:
 				continue
 		log.info("Got first message:\n" + firstMessage)
 		hostPort = HttpParser.getHostAndPort(firstMessage)
+		firstMessage = HttpParser.modifyMessage(firstMessage)
 		if hostPort is not None:
 			self.connections[addr].setFirstMessage(((self.DATA, (addr, 
 				firstMessage))))
@@ -62,6 +64,7 @@ class HttpProxy:
 			beginMessage = (self.BEGIN, (addr, body))
 			self.converter.putHttp(beginMessage)
 		else:
+			log.info("Couldn't get HostPort, killing " + str(addr))
 			self.connections[addr].killSelf()
 		
 	#Get a connection from a tor router
@@ -70,13 +73,15 @@ class HttpProxy:
 		serverSocket = socket.socket(socket.AF_INET, 
 			socket.SOCK_STREAM)
 		try:
+			log.info("Attempting to connect to " + str(addr))
 			serverSocket.connect(addr)
 		except socket.error as (errno, msg):
 			log.info(msg)
 			self.converter.putHttp((self.FAIL, (addr, "")))
 			return
-		self.connections[addr] = HttpConnection(serverSocket, self)
-		self.connections[addr].openConnection(addr)
+		log.info("Connected to " + str(addr))
+		self.connections[addr] = HttpConnection(serverSocket, self, addr)
+		self.connections[addr].openConnection()
 		self.converter.putHttp((self.CONNECTED, (addr, "")))
 		
 	#Add connections to the connection list as they arrive
@@ -106,28 +111,28 @@ class HttpProxy:
 		
 	#Interpret DATA, BEGIN, and END	
 	def delegateMessage(self, message):
-		t = threading.Thread(target=self.delegateMessageWorker,
-			args=(message,))
-		t.start()
-
-	#Worker for delegation
-	def delegateMessageWorker(self, message):
 		log.info(message)
 		command, payload = message
 		addr, body = payload
 		if command == self.DATA:
+			log.info("Recieved DATA")
 			if addr in self.connections:
 				self.connections[addr].putHttp(body)
+			else:
+				log.info("No connection for " + str(addr))
 		if command == self.BEGIN:
-			self.processConnectionFromRouter(addr)
+			t = threading.Thread(target=self.processConnectionFromRouter,
+				args=(addr,))
+			t.start()
 		if command == self.END:
 			if addr in self.connections:
-				self.connections[addr].stop()
+				self.connections[addr].buffer.put(None, True)
 		if command == self.CONNECTED:
 			if addr in self.connections:
-				self.connections[addr].openConnection(addr)
+				self.connections[addr].openConnection()
 		if command == self.FAIL:
 			if addr in self.connections:
+				self.connections[addr].stop()
 				del self.connections[addr]
 
 	#Stop all activity
@@ -141,7 +146,8 @@ class HttpProxy:
 	def removeConnection(self, addr):
 		log.info(addr[0])
 		self.converter.putHttp((self.END, (addr, "")))
-		del self.connections[addr]
+		if addr in self.connections:
+			del self.connections[addr]
 				
 #Run this module alone as a test giving it a port as an argument
 if(__name__ == "__main__"):

@@ -12,8 +12,11 @@ class RouterConnection(object):
     self.remoteIp = ip
     self.remotePort = port
     self.socket = socket
-    self.end = False
     self.BLOCK_TIMEOUT = 2
+    socket.settimeout(self.BLOCK_TIMEOUT)
+    self.end = False
+    self.readStopped = False
+    self.writeStopped = False
     self.startThreads()
   
   #############################################
@@ -24,10 +27,8 @@ class RouterConnection(object):
     #start the reader and writer threads
     # e.g. readFromRouter() && readFromBuffer()
     fromRouter = threading.Thread(target=self.readFromRouter, args=())
-    fromRouter.daemon = True
     fromRouter.start()
     toRouter = threading.Thread(target=self.bufferToRouter, args=())
-    toRouter.daemon = True
     toRouter.start()
 
   def disconnectFromRouter(self):
@@ -56,6 +57,8 @@ class RouterConnection(object):
         log.info("Socket timeout")
         continue
         # (origin router should process the message and decide what to do with it)
+    self.readStopped = True
+    log.info("ended readFromRouter")
 
   # Logically, this is the write thread
   def bufferToRouter(self):
@@ -65,8 +68,10 @@ class RouterConnection(object):
         item = self.buffer.get(True, self.BLOCK_TIMEOUT)
         self.socket.sendall(item)
       except Queue.Empty:
-        log.info("Queue timeout")
+        log.info("Queue timeout, self.end: %s" % self.end)
         continue
+    self.writeStopped = True
+    log.info("ended bufferToRouter")
 
   def readFromBuffer(self):
     log.info("reading from buffer")
@@ -83,6 +88,7 @@ class RouterConnection(object):
         #log.info(self.router)
         #log.info("queue size: %d" % self.buffer.qsize())
         log.info("Queue timeout")
+    log.info("ended readFromBuffer")
      
   # Write to the remote router
 #  def writeToRouter(self, msg):
@@ -99,5 +105,5 @@ class RouterConnection(object):
 #    log.info("written to router")
 
   def stop(self):
+    log.info("calling stop on RouterConnection")
     self.end = True
-    self.disconnectFromRouter()

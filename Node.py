@@ -1,5 +1,5 @@
 import Router, Tor61Log, HttpCellConverter
-import sys, os
+import sys, os, threading
 log = Tor61Log.getLog()
 
 def main():
@@ -15,11 +15,11 @@ def main():
   log.info("Starting Router")
   try:
     router.start()
-    log.info("Router finished.")
   except KeyboardInterrupt:
     log.info("Interupted! Shutting down.")
     router.stop()
-    sys.exit(0)
+    log.info("exited router.stop()")
+    os._exit(0)
   log.info("Router shutting down")
 
 if __name__ == '__main__':

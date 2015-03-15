@@ -6,7 +6,7 @@ from struct import pack
 
 log = Tor61Log.getLog()
 
-CIRCUIT_TIMEOUT = datetime.timedelta(0, 60 * 5)
+CIRCUIT_TIMEOUT = timedelta(0, 60 * 5)
 
 class Router(object):
   #############################################
@@ -147,7 +147,7 @@ class Router(object):
     
     thread = threading.Thread(target=self.createCircuit, args = ())
     thread.start()
-    timerThread = threading.Thread(target = self.timerscan, args = ())
+    timerThread = threading.Thread(target = self.timerScan, args = ())
     timerThread.start()
     self.handleNewConnections(connectionAccepter)
     
@@ -208,8 +208,8 @@ class Router(object):
     log.info("Destroying circuit #%x (incomplete)" % circuitId)
     toDestroy = self.circuitHosts[circuitId]
     for host in toDestroy:
-    ip, port = host
-    self.doDestroy(circuitId, ip, host)
+      ip, port = host
+      self.doDestroy(circuitId, ip, host)
   
   #############################################
   ## Circuit Creation Send Message functions
@@ -560,12 +560,12 @@ class Router(object):
     
   def timerScan(self):
     while not self.end:
-      sleep(CIRCUIT_TIMEOUT.total_seconds()):
-        now = datetime.now()
-        for id in self.timers:
-          if now - self.timers[id] > CIRCUIT_TIMEOUT:
-            destroyCircuit(circuitId)
-            
+      time.sleep(CIRCUIT_TIMEOUT.total_seconds())
+      now = datetime.now()
+      for id in self.timers:
+        if now - self.timers[id] > CIRCUIT_TIMEOUT:
+          destroyCircuit(circuitId)
+          
 
   def stop(self):
     log.info("stopping")

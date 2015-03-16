@@ -7,7 +7,7 @@
 Node.py is an overall abstraction of a Router, including both proxy and Tor sides
 '''
 
-import Router, Tor61Log, HttpCellConverter
+import Router, Tor61Log, HttpCellConverter, HttpProxy
 import sys, os, threading
 log = Tor61Log.getLog()
 
@@ -18,11 +18,12 @@ def main():
     sys.exit(1)
   groupNum = sys.argv[1]
   instanceNum = sys.argv[2]
-  port = sys.argv[3]
+  port = int(sys.argv[3])
   converter = HttpCellConverter.getConverter()
-  router = Router.Router(converter, groupNum, instanceNum, port)
-  log.info("Starting Router")
+  proxy = HttpProxy.HttpProxy(port)
+  router = Router.Router(converter, groupNum, instanceNum, groupNum)
   try:
+    proxy.awaitConnections()
     router.start()
   except KeyboardInterrupt:
     log.info("Interupted! Shutting down.")

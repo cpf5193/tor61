@@ -31,11 +31,6 @@ class RouterConnection(object):
     toRouter = threading.Thread(target=self.bufferToRouter, args=())
     toRouter.start()
 
-  def disconnectFromRouter(self):
-    #send a message to router first?
-    self.socket.close()
-    self.socket = None
-
   #############################################
   ## Read/Write Functions
   #############################################
@@ -51,7 +46,6 @@ class RouterConnection(object):
         if not self.end:
           log.info("self.remoteIp: %s, self.remotePort: %s" % (self.remoteIp, self.remotePort))
           log.info("socket.ip: %s, socket.port: %s" % self.socket.getsockname())
-          #sockinfo = self.socket.getsockname()
           self.router.handleRouterMessage(routerMsg, self.remoteIp, self.remotePort)
       except socket.timeout:
         log.info("Socket timeout")
@@ -75,34 +69,12 @@ class RouterConnection(object):
 
   def readFromBuffer(self):
     log.info("reading from buffer")
-    #log.info(self.buffer)
     if not self.end:
       try:
         return self.buffer.get(True, self.BLOCK_TIMEOUT) # blocking operation
       except Queue.Empty:
-        #log.info("queue: ")
-        #log.info(self.buffer)
-        #log.info("RouterConnection: ")
-        #log.info(self)
-        #log.info("router reference: ")
-        #log.info(self.router)
-        #log.info("queue size: %d" % self.buffer.qsize())
         log.info("Queue timeout")
     log.info("ended readFromBuffer")
-     
-  # Write to the remote router
-#  def writeToRouter(self, msg):
-    # send the indicated message to the router
- #   if self.end:
-#      return False
-#    try:
-      #log.info("Trying to send msg over socket %s:%s " % (self.ip, self.port))
-#      self.socket.sendall(msg)
-#      return True
-#    except socket.error as msg:
-#      log.info("Failed to write to router: %s" % msg)
-#      return False
-#    log.info("written to router")
 
   def stop(self):
     log.info("calling stop on RouterConnection")

@@ -26,11 +26,11 @@ class RelayCell(Cell.Cell):
 
   def getStreamId(self):
     streamId, rest = unpack_from('!H507s', self.buffer, self.STREAM_ID_INDEX)
-    return streamId
+    return int(streamId)
 
   def getBodyLen(self):
-    bodyLen, rest = unpack_from('!H501s', self.buffer, self.BODY_LEN_INDEX)
-    return bodyLen
+    bodyLen, rest = unpack_from('!H499s', self.buffer, self.BODY_LEN_INDEX)
+    return int(bodyLen)
 
   def getRelayCmd(self):
     relayCmd, rest = unpack_from('!b498s', self.buffer, self.RELAY_CMD_INDEX)

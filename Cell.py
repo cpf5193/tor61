@@ -23,7 +23,7 @@ class Cell(object):
     #log.info("self.buffer: ")
     #log.info(self.buffer)
     circuitId, rest = unpack('!H510s', self.buffer)
-    return circuitId
+    return int(circuitId)
 
   def getCmdId(self):
     cmdType, rest = unpack_from('!b509s', self.buffer, CMD_TYPE_INDEX)

@@ -45,7 +45,7 @@ class Router(object):
  #     '0xc': self.handleExtendFailed
     }
     self.NEXT_CIRC_ID = 1
-    self.circuitLength = 0
+    self.circuitLength = 1
     self.end = False
 
   #############################################
@@ -417,7 +417,6 @@ class Router(object):
   # Receives a CREATED cell and either sends an EXTENDED back to the previous router or an EXTEND on to
   # next router depending on where it is in the circuit
   def handleCreated(self, msg, remoteIp, remotePort):
-    self.circuitLength += 1
     createdMsg = Cell.Cell()
     createdMsg.setBuffer(msg)
     circId = createdMsg.getCircuitId()
@@ -540,9 +539,13 @@ class Router(object):
       outgoingTuple = self.routingTable[routingKey]
       extendMsg = RelayCell.RelayCell()
       extendMsg.setBuffer(msg)
-      changedCircuitMsg = RelayCell.RelayCell(extendMsg.getCircuitId(), extendMsg.getStreamId(), extendMsg.getBodyLen(), extendMsg.getRelayCmd(), extendMsg.getBody())
-      self.connections[outgoingTuple[1]].writeToBuffer(changedCircuitMsg)
-      
+      changedCircuitMsg = RelayCell.RelayCell(extendMsg.getCircuitId(), extendMsg.getStreamId(), extendMsg.getBodyLen(), int(extendMsg.getRelayCmd(), 16), extendMsg.getBody())
+      self.circuitLength += 1
+      if (self.circuitLength < 3):
+        self.connections[outgoingTuple[1]].writeToBuffer(changedCircuitMsg.toString())
+      else:
+        self.stop()
+      os._exit(1)  
       '''
       # TODO: create and catch exception in doCreate so we can report
       # an EXTEND FAILED when the create fails
@@ -560,9 +563,18 @@ class Router(object):
 
   def handleExtended(self, msg, remoteIp, remotePort):
     log.info("received EXTENDED message from %s:%d" % (remoteIp, remotePort))
+    self.circuitLength += 1
     if self.circuitLength < 3:
+      log.info("Sending EXTEND cell to %s:%s" % (remoteIp, remotePort))
+      peerArr = self.peers[self.circuitLength]
+      bodyString = "%s:%s\0%s" % (peerArr['ip'], peerArr['port'], peerArr['data'])
+      extendMsg = RelayCell.RelayCell(0x0001, 0x0000, len(bodyString), 0x06, bodyString)
+      self.connections[(remoteIp, remotePort)].writeToBuffer(extendMsg.toString())
+      log.info("circuitLength: %d" % self.circuitLength)
       log.info("circuit not yet complete. doing another extend")
       return
+    else:
+      log.info("circuit creation completed.")
     
 
   def unexpectedCommand(self):
@@ -595,6 +607,6 @@ class Router(object):
       log.info(rc)
       # TODO: Send DESTROY cell to all circuits connected to router
       rc.stop()
-    time.sleep(2.5)
+    time.sleep(2)
     self.end = True
     log.info("end of router.py stop")

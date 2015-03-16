@@ -3,13 +3,12 @@
 # CSE 461
 # Project 3: Tor61
 
+# RelayCell.py
+# Represents a Tor61 Relay cell of any typeimport Cell
+
 import Cell
 import sys
 from struct import pack, unpack, pack_into, unpack_from
-
-'''
-RelayCell represents a Tor61 Relay cell of any type
-'''
 
 class RelayCell(Cell.Cell):
   RELAY_FORMAT = '!HbHHIHb498s'

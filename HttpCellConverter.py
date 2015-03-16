@@ -44,12 +44,12 @@ class HttpCellConverter:
     self.cellInputBuffer.put(cell, True)
   
   #Builds a cell
-  def buildCell(self, body, command):
+  def buildCell(self, body, command, streamId):
     log.info((body, command))
     cell = pack(self.RELAY_CELL_HEADER_FORMAT,
       self.RELAY_CELL_CIRCUIT_ID,
       self.THREE,
-      self.ZERO,
+      streamId,
       self.ZERO,
       self.RELAY_DIGEST,
       len(body),
@@ -73,16 +73,17 @@ class HttpCellConverter:
   def processHttp(self, message):
     log.info(message);
     command, payload = message
-    addr, body = payload
-    cell = self.buildCell(body, command)
+    addr, streamId, body = payload
+    cell = self.buildCell(body, command, streamId)
     self.cellOutputBuffer.put((addr, cell), True)
 
   #Process a Cell
   def processCell(self, cell):
     log.info((cell[0], cell[1].strip("\0")))
-    addr, payload = cell
+    key, payload = cell
+    addr, streamId = key
     circuit, three, streamId, zero, digest, length, command, body = unpack(self.RELAY_CELL_HEADER_FORMAT, payload)
-    message = (command, (addr, body.strip("\0")))
+    message = (command, (addr, streamId, body.strip("\0")))
     self.httpOutputBuffer.put(message, True)
     
   #Worker thread for reading from incoming Http

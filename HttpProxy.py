@@ -4,7 +4,8 @@
 # Tor61
 
 # HttpProxy.py
-# Stores a list of HTTP Connections 
+# Stores a list of HTTP Connections that communicate with both
+# their peers and the Tor router
 
 import sys, threading, Tor61Log, HttpCellConverter, Queue, HttpParser, socket
 from ProxyConnectionListener import ProxyConnectionListener
@@ -39,13 +40,18 @@ class HttpProxy:
   #Worker thread
   def processConnectionFromBrowserWorker(self, conn, addr):
     log.info(addr)
-    self.connections[addr] = HttpConnection(conn, self, addr)
-    while not self.connections[addr].end:
+    remoteAddress = conn.getpeername()
+    host, streamId = remoteAddress
+    self.connections[(addr, streamId)] = HttpConnection(conn, self, addr,
+			streamId)
+    while not self.connections[(addr, streamId)].end:
       try:
         firstMessage = conn.recv(self.READ_SIZE)
         if len(firstMessage) == 0:
-          log.info("First message was empty, killing " + str(addr))
-          self.connections[addr].killSelf()
+          log.info("First message was empty, killing " + str(addr) + " " +
+						str(streamId))
+          self.connections[(addr, streamId)].killSelf()
+          break
         else:
           break
       except socket.timeout:
@@ -54,18 +60,19 @@ class HttpProxy:
     log.info("Got first message:\n" + firstMessage)
     hostPort = HttpParser.getHostAndPort(firstMessage)
     if hostPort is not None:
-      self.connections[addr].setFirstMessage(((self.DATA, (addr, 
-        firstMessage))))
+      self.connections[(addr, streamId)].setFirstMessage(((self.DATA, (addr, 
+        streamId, firstMessage))))
       host, port = hostPort
       body = host + ":" + str(port) + "\0"
-      beginMessage = (self.BEGIN, (addr, body))
+      beginMessage = (self.BEGIN, (addr, streamId, body))
       self.converter.putHttp(beginMessage)
     else:
-      log.info("Couldn't get HostPort, killing " + str(addr))
-      self.connections[addr].killSelf()
+      log.info("Couldn't get HostPort, killing " + str(addr) + " " +
+				str(streamId))
+      self.connections[(addr, streamId)].killSelf()
     
   #Get a connection from a tor router
-  def processConnectionFromRouter(self, addr):
+  def processConnectionFromRouter(self, addr, streamId):
     log.info(addr)
     serverSocket = socket.socket(socket.AF_INET, 
       socket.SOCK_STREAM)
@@ -74,12 +81,13 @@ class HttpProxy:
       serverSocket.connect(addr)
     except socket.error as (errno, msg):
       log.info(msg)
-      self.converter.putHttp((self.FAIL, (addr, "")))
+      self.converter.putHttp((self.FAIL, (addr, streamId, "")))
       return
-    log.info("Connected to " + str(addr))
-    self.converter.putHttp((self.CONNECTED, (addr, "")))
-    self.connections[addr] = HttpConnection(serverSocket, self, addr)
-    self.connections[addr].openConnection()
+    log.info("Connected to " + str(addr) + " " + str(streamId))
+    self.converter.putHttp((self.CONNECTED, (addr, streamId, "")))
+    self.connections[(addr, streamId)] = HttpConnection(serverSocket, 
+			self, addr, streamId)
+    self.connections[(addr, streamId)].openConnection()
     
   #Add connections to the connection list as they arrive
   def awaitConnections(self):
@@ -113,26 +121,29 @@ class HttpProxy:
   def delegateMessage(self, message):
     log.info(message)
     command, payload = message
-    addr, body = payload
+    addr, streamId, body = payload
+    key = (addr, streamId)
+    log.info(str(addr) + " " + str(streamId))
     if command == self.DATA:
       log.info("Recieved DATA")
-      if addr in self.connections:
-        self.connections[addr].putHttp(body)
+      if key in self.connections:
+        self.connections[key].putHttp(body)
       else:
-        log.info("No connection for " + str(addr))
+        log.info("No connection for " + str(addr) + " " +
+					str(streamId))
     if command == self.BEGIN:
       t = threading.Thread(target=self.processConnectionFromRouter,
-        args=(addr,))
+        args=(addr, streamId))
       t.start()
     if command == self.END:
-      if addr in self.connections:
-        self.connections[addr].writeBuffer.put(None, True)
+      if key in self.connections:
+        self.connections[key].writeBuffer.put(None, True)
     if command == self.CONNECTED:
-      if addr in self.connections:
-        self.connections[addr].openConnection()
+      if key in self.connections:
+        self.connections[key].openConnection()
     if command == self.FAIL:
-      if addr in self.connections:
-        self.connections[addr].killSelf()
+      if key in self.connections:
+        self.connections[key].killSelf()
 
   #Stop all activity
   def stop(self):
@@ -142,8 +153,8 @@ class HttpProxy:
       self.connections[conn].stop()
   
   #Removes a connection identified by streamId    
-  def removeConnection(self, addr):
-    log.info(addr[0])
+  def removeConnection(self, addr, streamId):
+    log.info(str(addr) + " " + str(streamId))
     if addr in self.connections:
       del self.connections[addr]
         
@@ -162,6 +173,7 @@ if(__name__ == "__main__"):
         print line
     except KeyboardInterrupt:
       log.info("Keyboard Interrupt")
+      log.info(str(proxy.connections))
       stop = True
       proxy.stop()
       tor.stop()

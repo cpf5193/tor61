@@ -36,13 +36,15 @@ class ProxyConnectionListener:
   def start(self):
     while(not self.end):
       try:
-        log.info("Listening for connections")
+        log.info("Listening for connections on " + 
+          str(self.listener.getsockname()))
         conn, addr = self.listener.accept()
-        log.info("Received new connection from " + str(addr))
+        log.info("Received new connection from " + str(addr) + 
+          ", accepted conn: " + str(conn.getsockname()))
         self.connectionHandler.processConnectionFromBrowser(conn,
           addr)
       except socket.timeout:
-        log.info("timeout")
+        log.info("timeout on " + str(self.listener.getsockname()))
         continue
       except socket.error, msg:
         log.error(msg)

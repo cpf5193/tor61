@@ -1,11 +1,10 @@
 # Chip Fukuhara and Jacob Gile
 # Zahorjan
 # CSE 461
-# Project 3: Tor61
+# Tor61
 
-'''
-Node.py is an overall abstraction of a Router, including both proxy and Tor sides
-'''
+# Node.py
+# Container for the HTTP proxy, Tor router, and converter
 
 import Router, Tor61Log, HttpCellConverter, HttpProxy
 import sys, os, threading

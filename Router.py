@@ -1,7 +1,10 @@
 # Chip Fukuhara and Jacob Gile
 # Zahorjan
 # CSE 461
-# Project 3: Tor61
+# Tor61
+
+# RelayCell.py
+# Represents a Tor61 Relay cell of any typeimport Cell
 
 import CommandCellOpen, RelayCell, Cell, RouterConnection, Tor61Log
 import os, threading, subprocess, time, socket, re, sys, datetime
@@ -45,9 +48,8 @@ class Router(object):
       '0x4': self.handleConnected,
       '0x6': self.handleExtend,
       '0x7': self.handleExtended
-
-      #'0xb': self.handleBeginFailed,
-      #'0xc': self.handleExtendFailed
+      '0xb': self.handleBeginFailed,
+      '0xc': self.handleExtendFailed
     }
     self.NEXT_CIRC_ID = 1
     self.circuitLength = 1
@@ -63,6 +65,7 @@ class Router(object):
     thread = threading.Thread(target=os.system, args=(string,))
     thread.start()
 
+  #Initial circuit creation
   def createCircuit(self):
     log.info("Creating circuit")
     # allow time for new connection accepter to start and for the registration to propagate
@@ -98,10 +101,12 @@ class Router(object):
 
     # Send an OPEN cell to the first peer, the next steps are taken care of by the
     # RouterConnection objects
+
     self.doOpen(conn, peers[0]['data'])
 
     log.info("Successfully created circuit with id 1")
 
+  #Fetches a lsit of Tor61 peers
   def getPeers(self):
     log.info("fetching registered routers")
     string = "python fetch.py Tor61Router-%s-%s" % (self.groupNum, self.instanceNum)
@@ -130,11 +135,8 @@ class Router(object):
     log.info(circuitPeers)
     return circuitPeers
 
-  def manageTimeouts(self):
-    #create a new thread to manage the timer table,
-    #checking if circuits have timed out and calling destroy if so
-    log.info("Creating timeout manager (incomplete)")
-
+  # Creates the first circuit and awaits new
+  # router connections
   def start(self):
     self.registerRouter()
     # Start listening for other connections once the circuit is created
@@ -152,6 +154,7 @@ class Router(object):
     timerThread.start()
     self.handleNewConnections(connectionAccepter)
     
+  #Accepts new router connections
   def handleNewConnections(self, connectionAccepter):
     while not self.end:
       try:
@@ -179,6 +182,7 @@ class Router(object):
     # buffer using RouterConnection's writeToBuffer
     log.info("Handling message from proxy side (incomplete)")
 
+  # Handles a message from another router
   def handleRouterMessage(self, msg, remoteIp, remotePort):
     # Accept a message from a RouterConnection, process it, and send it either to
     # the converter or to another router connection's buffer
@@ -189,7 +193,6 @@ class Router(object):
     circuitId = cell.getCircuitId()
     
     self.resetTimer(circuitId)
-    
     
     cmdId = cell.getCmdId()
     log.info("Command type is %s" % cmdId)
@@ -224,11 +227,13 @@ class Router(object):
     log.info("Sending OPEN cell to %s:%s" % (connection.remoteIp, connection.remotePort))
     connection.writeToBuffer(openMsg.toString())
     
+  #Sends a create cell
   def doCreate(self, connection, circuitId):
     createMsg = Cell.Cell(circuitId, 1)
     log.info("Writing CREATE cell to %s:%s" % (connection.remoteIp, connection.remotePort))
     connection.writeToBuffer(createMsg.toString())
-    
+
+  #Sends an extend cell
   def doExtend(self, connection, peerArr):
     bodyString = "%s:%s\0%s" % (peerArr['ip'], peerArr['port'], peerArr['data'])
     extendMsg = RelayCell.RelayCell(self.NEXT_CIRC_ID, 0x00, len(bodyString), 0x06, bodyString)
@@ -257,6 +262,7 @@ class Router(object):
           log.info("ERROR: unexpected command type in response to EXTEND")
           sys.exit(1)
 
+  #Sends a destroy cell
   def doDestroy(self, circuitId, remoteIp, removeHost):
     log.info((circuitID, remoteIp, removeHost))
     
@@ -304,11 +310,12 @@ class Router(object):
     createMsg = Cell.Cell(openMsg.getCircuitId(), 1)
     self.connections[(remoteIp, remotePort)].writeToBuffer(createMsg.toString())
 
+  # Handle an open failed cell
   def handleOpenFailed(self, msg, remoteIp, remotePort):
     log.info("Received OPEN FAILED cell from %s:%d" % (remoteIp, remotePort))
     sys.exit(1)
-    
 
+  # Handle a create cell
   def handleCreate(self, msg, remoteIp, remotePort):
     log.info("Handling CREATE cell")
     # The received cell is a Create cell, establish the new circuit number by
@@ -378,27 +385,53 @@ class Router(object):
     else:
       # If the tuple is not in the routing table, then the initial create failed
       self.stop()
-      
+  
+  # Handle a destroy cell
   def handleDestroy(self, msg, remoteIp, remotePort):
     # The received cell is a Destroy cell, do appropriate logic
+    self.allrcs[(remoteIp, remotePort)].stop()
+    cell = Cell.Cell()
+    cell.setBuffer(msg)
+    circuitId = cell.getCircuitId()
+    key = (circuitId, (remoteIp, remotePort))
+    del self.allrcs[(remoteIp, remotePort)]
+    other = self.routingTable[key]
+    del self.routingTable[key]
+    del self.routingTable[other]
     return
+    
+  #Sends a relay cell to the proxy
+  def giveRelayToProxy(self, msg, remoteIp, remotePort):
+    cell = RelayCell.RelayCell()
+    cell.setBuffer(pack('512s', msg))
+    streamId = cell.getStreamId()
+    body = cell.getBody()
+    key = ((remoteIp, int(remotePort)), streamId)
+    toEnqueue = (key, body)
+    log.info(str(toEnqueue))
+    self.convert.putCell(toEnqueue)
 
+  #Gives a BEGIN to the proxy
   def handleBegin(self, msg, remoteIp, remotePort):
-    # The received cell is a relay begin cell, do appropriate logic
-    return
+    log.info("Sending BEGIN to " + str((remoteIp, remotePort)))
+    giveRelayToProxy(msg, remoteIp, remotePort)
 
+  #Gives a DATA to the proxy
   def handleData(self, msg, remoteIp, remotePort):
-    # The received cell is a relay data cell, do appropriate logic
-    return
+    log.info("Sending DATA to " + str((remoteIp, remotePort)))
+    giveRelayToProxy(msg, remoteIp, remotePort)
 
+  #Gives an END to the proxy
   def handleEnd(self, msg, remoteIp, remotePort):
-    # The received cell is a relay end cell, do appropriate logic
-    return
+    log.info("Sending END to " + str((remoteIp, remotePort)))
+    giveRelayToProxy(msg, remoteIp, remotePort)
 
+  #Gives a CONNECTED to the proxy
   def handleConnected(self, msg, remoteIp, remotePort):
-    # The received cell is a relay connected cell, do appropriate logic
-    return
+    log.info("Sending CONNECTED to " + str((remoteIp, remotePort)))
+    giveRelayToProxy(msg, remoteIp, remotePort)
 
+  #Sends an extend to the next router
   def handleExtend(self, msg, remoteIp, remotePort):
     log.info("Handling EXTEND cell")
     # Create dummy cell then set buffer on the cell
@@ -410,6 +443,7 @@ class Router(object):
     routingKey = (cell.getCircuitId(), (remoteIp, remotePort))
     log.info("routing table: ")
     log.info(self.routingTable)
+
     if self.routingTable[routingKey] == None:
       log.info("EXTEND detected by last in circuit, doing CREATE")
       # The extend is meant for this router, do the extend
@@ -458,6 +492,7 @@ class Router(object):
       time.sleep(1)
       os._exit(1)
 
+  #Handles a an EXTEND from another router
   def handleExtended(self, msg, remoteIp, remotePort):
     log.info("received EXTENDED message from %s:%d" % (remoteIp, remotePort))
     self.circuitLength += 1
@@ -472,29 +507,34 @@ class Router(object):
       return
     else:
       log.info("circuit creation completed.")
-    
-
+      
+  #Exit on an unexpected command
   def unexpectedCommand(self):
     log.info("Received unexpected command")
     sys.exit(1)
     
+  #Resets the timer for this circuit
   def resetTimer(self, circuitId):
     self.timers[circuitId] = datetime.now()
     
+  #Adds a list of addresses associated with a circuit
   def addAddressToCircuit(self, circuitId, ip, port):
     if circuitId in self.circuitHosts:
       self.circuitHosts[circuitId].add((ip, port))
     else:
       self.circuitHosts[circuitId] = [(ip, port)]
     
+  #Scans the timer table and removes circuits that have not had
+  #activity in CIRCUIT_TIMEOUT seconds
   def timerScan(self):
     while not self.end:
       time.sleep(CIRCUIT_TIMEOUT.total_seconds())
       now = datetime.now()
       for id in self.timers:
         if now - self.timers[id] > CIRCUIT_TIMEOUT:
-          destroyCircuit(circuitId)
-          
+          destroyCircuit(circuitId)          
+
+  #Signals threads to stop
   def stop(self):
     log.info("stopping")
     log.info(self.allrcs)

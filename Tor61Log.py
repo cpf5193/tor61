@@ -12,7 +12,7 @@ import logging
 FORMAT = '%(asctime)s %(module)s.%(funcName)s {%(threadName)s} %(levelname)s: %(message)s'
 logging.basicConfig(format=FORMAT)
 logger = logging.getLogger('Tor61')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
     
 #Allow modules acccess to the log
 def getLog():

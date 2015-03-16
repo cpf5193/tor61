@@ -1,14 +1,13 @@
 # Chip Fukuhara and Jacob Gile
 # Zahorjan
 # CSE 461
-# Project 3: Tor61
+# Tor61
+
+# CommandCellOpen.py
+# Represents an Open, Opened, or Open Failed
 
 import Cell
 from struct import pack, unpack, pack_into, unpack_from
-
-'''
-CommandCellOpen represents an Open, Opened, or Open Failed cell
-'''
 
 COMMAND_FORMAT = '!HbII501s'
 OPEN_HEAD_LEN = 11
@@ -22,6 +21,7 @@ class CommandCellOpen(Cell.Cell):
     print "openerId: ", openerId, "openedId: ", openedId
     self.buffer = pack(COMMAND_FORMAT, circuitId, cmdType, int(openerId), int(openedId), padding)
 
+	
   def setBuffer(self, buffer):
     self.buffer = buffer
 

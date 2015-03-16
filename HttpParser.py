@@ -47,27 +47,31 @@ def getHostAndPort(message):
     
 def modifyMessage(message):
   log.info("INITIAL MESSAGE: \n" + message)
+  if message == "HTTP/1.0 200 OK\r\n\r\n":
+    return message
   originalLines = message.splitlines(True)
   foundProxyKeepAlive = False
   foundConnectionKeepAlive = False
   foundHttp = False
   newLines = []
   if("HTTP/2.0" in originalLines[0]):
-    originalLines[0] = originalLines[0].replace("HTTP/2.0", " HTTP/1.0", 1)
+    originalLines[0] = originalLines[0].replace("HTTP/2.0", "HTTP/1.0", 1)
     foundHttp = True
   elif("HTTP/1.1" in originalLines[0]):
-    originalLines[0] = originalLines[0].replace("HTTP/1.1", " HTTP/1.0", 1)
+    originalLines[0] = originalLines[0].replace("HTTP/1.1", "HTTP/1.0", 1)
     foundHttp = True
+  elif("HTTP/1.0" in originalLines[0]):
+	  foundHttp = True
   
   for line in originalLines:
     if not foundConnectionKeepAlive:
-      if line.startswith("Connection: keep-alive"):
+      if line.startswith("Connection: "):
         next = line.replace("keep-alive", "close", 1)
         foundConnectionKeepAlive = True
         newLines.append(next)
         continue
     if not foundProxyKeepAlive:
-      if line.startswith("Proxy-Connection: keep-alive"):
+      if line.startswith("Proxy-Connection: "):
         next = line.replace("keep-alive", "close", 1)
         foundProxyKeepAlive = True
         newLines.append(next)

@@ -49,11 +49,12 @@ class DummyRouter:
     if command == self.BEGIN:
       hostPort = body.strip("\0").split(":")
       remote = (hostPort[0], int(hostPort[1]))
-      self.table[remote] = addr
-      self.table[addr] = remote
-    log.info("to " + str(self.table[addr]))
-    self.converter.putCell((self.table[addr], payload))
+      self.table[(remote, streamId)] = (addr, streamId)
+      self.table[(addr, streamId)] = (remote, streamId)
+    log.info("to " + str(self.table[(addr, streamId)]))
+    self.converter.putCell((self.table[(addr, streamId)], payload))
 
   #Stop all activity
   def stop(self):
+    log.info(str(self.table))
     self.end = True

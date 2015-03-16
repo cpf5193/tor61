@@ -17,8 +17,6 @@ OPENED_ID_INDEX = 7
 class CommandCellOpen(Cell.Cell):
   def __init__(self, circuitId = 0x0000, cmdType = 0x00, openerId = '0', openedId = '0'):
     padding = '0'.zfill(Cell.LENGTH - OPEN_HEAD_LEN)
-    print "circuitId: ", circuitId, ", cmdType: ", cmdType 
-    print "openerId: ", openerId, "openedId: ", openedId
     self.buffer = pack(COMMAND_FORMAT, circuitId, cmdType, int(openerId), int(openedId), padding)
 
 	

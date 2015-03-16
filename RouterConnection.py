@@ -14,8 +14,7 @@ log = Tor61Log.getLog()
 
 class RouterConnection(object):
 
-  def __init__(self, router, circuit
-  Id, ip, port, socket):
+  def __init__(self, router, circuitId, ip, port, socket):
     self.buffer = Queue.Queue(100000)
     self.circuitId = circuitId
     self.router = router # The router that this RouterConnection is a part of

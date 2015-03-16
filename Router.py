@@ -47,7 +47,7 @@ class Router(object):
       '0x3': self.handleEnd,
       '0x4': self.handleConnected,
       '0x6': self.handleExtend,
-      '0x7': self.handleExtended
+      '0x7': self.handleExtended,
       '0xb': self.handleBeginFailed,
       '0xc': self.handleExtendFailed
     }
@@ -507,6 +507,16 @@ class Router(object):
       return
     else:
       log.info("circuit creation completed.")
+
+  # Exit on an Extend Failed message
+  def handleExtendFailed(self, msg, remoteIp, remotePort):
+    log.info("EXTEND FAILED received. Exiting.")
+    self.stop()
+
+  # Exit on a Begin Failed message
+  def handleBeginFailed(self, mg, remoteIp, remotePort):
+    log.info("RELAY BEGIN FAILED received. Exiting.")
+    self.stop()
       
   #Exit on an unexpected command
   def unexpectedCommand(self):

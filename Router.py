@@ -1,3 +1,8 @@
+# Chip Fukuhara and Jacob Gile
+# Zahorjan
+# CSE 461
+# Project 3: Tor61
+
 import CommandCellOpen, RelayCell, Cell, RouterConnection, Tor61Log
 import os, threading, subprocess, time, socket, re, sys, datetime
 from datetime import datetime, timedelta

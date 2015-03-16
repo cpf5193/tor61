@@ -1,3 +1,8 @@
+# Chip Fukuhara and Jacob Gile
+# Zahorjan
+# CSE 461
+# Project 3: Tor61
+
 import Cell
 import sys
 from struct import pack, unpack, pack_into, unpack_from
@@ -41,25 +46,6 @@ class RelayCell(Cell.Cell):
     body = rest[:bodyLen]
     return body
 
-  def getCommandName():
-    names = {
-      0x01: 'Begin',
-      0x02: 'Data',
-      0x03: 'End',
-      0x04: 'Connected',
-      0x06: 'Extend',
-      0x07: 'Extended',
-      0x0b: 'Begin Failed',
-      0x0c: 'Extend Failed'
-    }
-
-    name = names.get(self.getRelayCmd())
-    if (name == None):
-      raise Exception('Invalid relay command type.')
-      sys.exit(1)
-    else:
-      return name
-
   def getBuffer(self):
     return self.buffer
 
@@ -67,6 +53,4 @@ class RelayCell(Cell.Cell):
     self.buffer = buffer
 
   def toString(self):
-    #circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest = unpack(self.RELAY_FORMAT, self.buffer)
-    #return "%x%x%x%x%x%x%x%s" % (circuitId, cmdType, streamId, filler, digest, bodyLen, relayCmd, rest)
     return "%s" % self.buffer

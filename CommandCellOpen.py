@@ -1,8 +1,13 @@
+# Chip Fukuhara and Jacob Gile
+# Zahorjan
+# CSE 461
+# Project 3: Tor61
+
 import Cell
 from struct import pack, unpack, pack_into, unpack_from
 
 '''
-CommandCellOpen represents an Open, Opened, or Open Failed
+CommandCellOpen represents an Open, Opened, or Open Failed cell
 '''
 
 COMMAND_FORMAT = '!HbII501s'
@@ -32,6 +37,4 @@ class CommandCellOpen(Cell.Cell):
     return self.buffer
 
   def toString(self):
-    #circuitId, cmdType, openerId, openedId, rest = unpack(COMMAND_FORMAT, self.buffer)
-    #return "%x%x%x%x%s" % (circuitId, cmdType, openerId, openedId, rest)
     return "%s" % self.buffer

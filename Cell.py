@@ -1,3 +1,8 @@
+# Chip Fukuhara and Jacob Gile
+# Zahorjan
+# CSE 461
+# Project 3: Tor61
+
 from struct import pack, unpack, unpack_from
 import Tor61Log
 
@@ -9,6 +14,7 @@ All cells contain a circuit id and command type at the beginning of the cell.
 The 'Created', 'Create', 'Create Failed', and 'Destroy' command cells can be
 directly represented by the overall Cell class.
 '''
+# Global Cell module state
 LENGTH = 512
 CELL_FORMAT = '!Hb509s'
 CELL_HEAD_LEN = 3
@@ -20,8 +26,6 @@ class Cell(object):
     self.buffer = pack(CELL_FORMAT, circuitId, cmdType, padding)
 
   def getCircuitId(self):
-    #log.info("self.buffer: ")
-    #log.info(self.buffer)
     circuitId, rest = unpack('!H510s', self.buffer)
     return int(circuitId)
 
@@ -34,8 +38,6 @@ class Cell(object):
     return self.buffer
 
   def toString(self):
-    #circuitId, cmdType, rest = unpack(CELL_FORMAT, self.buffer)
-    #return "%x%x%s" % (circuitId, cmdType, rest)
     return "%s" % self.buffer
 
   def setBuffer(self, buffer):

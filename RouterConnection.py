@@ -1,3 +1,8 @@
+# Chip Fukuhara and Jacob Gile
+# Zahorjan
+# CSE 461
+# Project 3: Tor61
+
 import Router, Cell, Tor61Log
 import Queue, time, threading, socket
 
